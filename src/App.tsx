@@ -2,7 +2,6 @@ import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
 import { WIDGET_BY_LABEL } from "@/core/widgetRegistry";
 import { useWidgetLifecycle } from "@/core/useWidgetLifecycle";
 import { WidgetShell } from "@/shell/widget-shell";
-import { CONTROLLER_LABEL } from "@/core/constants";
 
 function readWindowLabel(): string {
   const fromQuery = new URLSearchParams(window.location.search).get("label");
@@ -24,10 +23,6 @@ function App() {
         Tauri window API unavailable in this context.
       </div>
     );
-  }
-
-  if (label === CONTROLLER_LABEL) {
-    return null;
   }
 
   const widget = WIDGET_BY_LABEL[label];

@@ -1,13 +1,23 @@
 import { createPollingFeed, type LiveFeed } from "@/core/liveFeed";
 
+export interface WeatherDay {
+  weekday: string;
+  high: number;
+  low: number;
+  code: number;
+  condition: string;
+}
+
 export interface WeatherData {
   temperature: number;
   condition: string;
+  code: number;
   city: string;
   humidity: number | null;
   wind: number | null;
   high: number | null;
   low: number | null;
+  days: WeatherDay[];
 }
 
 interface GeocodeResult {
@@ -26,6 +36,8 @@ interface ForecastResult {
     wind_speed_10m?: number;
   };
   daily?: {
+    time?: string[];
+    weather_code?: number[];
     temperature_2m_max?: number[];
     temperature_2m_min?: number[];
   };
@@ -46,6 +58,12 @@ const WEATHER_CODES: Record<number, string> = {
   80: "Showers",
   95: "Thunderstorm",
 };
+
+const WEEKDAYS = ["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"] as const;
+
+export function weatherConditionLabel(code: number): string {
+  return WEATHER_CODES[code] ?? "Unknown";
+}
 
 export async function fetchWeather(city: string): Promise<WeatherData> {
   const trimmed = city.trim();
@@ -69,7 +87,8 @@ export async function fetchWeather(city: string): Promise<WeatherData> {
     `https://api.open-meteo.com/v1/forecast?latitude=${place.latitude}` +
     `&longitude=${place.longitude}` +
     `&current=temperature_2m,weather_code,relative_humidity_2m,wind_speed_10m` +
-    `&daily=temperature_2m_max,temperature_2m_min&timezone=auto`;
+    `&daily=weather_code,temperature_2m_max,temperature_2m_min` +
+    `&forecast_days=4&timezone=auto`;
 
   const forecastResponse = await fetch(forecastUrl);
   if (!forecastResponse.ok) {
@@ -82,10 +101,29 @@ export async function fetchWeather(city: string): Promise<WeatherData> {
     throw new Error("Weather unavailable");
   }
 
+  const daily = forecast.daily;
+  const days: WeatherDay[] = [];
+  const times = daily?.time ?? [];
+  for (let i = 1; i < Math.min(times.length, 4); i += 1) {
+    const code = daily?.weather_code?.[i] ?? 0;
+    const high = daily?.temperature_2m_max?.[i];
+    const low = daily?.temperature_2m_min?.[i];
+    if (typeof high !== "number" || typeof low !== "number") continue;
+    const date = new Date(`${times[i]}T12:00:00`);
+    days.push({
+      weekday: WEEKDAYS[date.getDay()] ?? "—",
+      high: Math.round(high),
+      low: Math.round(low),
+      code,
+      condition: weatherConditionLabel(code),
+    });
+  }
+
   return {
     city: place.name,
     temperature: Math.round(current.temperature_2m),
-    condition: WEATHER_CODES[current.weather_code] ?? "Unknown",
+    code: current.weather_code,
+    condition: weatherConditionLabel(current.weather_code),
     humidity:
       typeof current.relative_humidity_2m === "number"
         ? Math.round(current.relative_humidity_2m)
@@ -95,20 +133,21 @@ export async function fetchWeather(city: string): Promise<WeatherData> {
         ? Math.round(current.wind_speed_10m)
         : null,
     high:
-      typeof forecast.daily?.temperature_2m_max?.[0] === "number"
-        ? Math.round(forecast.daily.temperature_2m_max[0])
+      typeof daily?.temperature_2m_max?.[0] === "number"
+        ? Math.round(daily.temperature_2m_max[0])
         : null,
     low:
-      typeof forecast.daily?.temperature_2m_min?.[0] === "number"
-        ? Math.round(forecast.daily.temperature_2m_min[0])
+      typeof daily?.temperature_2m_min?.[0] === "number"
+        ? Math.round(daily.temperature_2m_min[0])
         : null,
+    days,
   };
 }
 
 const feeds = new Map<string, LiveFeed<WeatherData | null>>();
 
 export function getWeatherFeed(city: string): LiveFeed<WeatherData | null> {
-  const key = city.trim().toLowerCase() || "tehran";
+  const key = `v2:${city.trim().toLowerCase() || "tehran"}`;
   let feed = feeds.get(key);
   if (!feed) {
     feed = createPollingFeed({

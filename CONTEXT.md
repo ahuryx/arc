@@ -9,8 +9,8 @@ Tray-hosted desktop widgets with Win11 chrome. Tauri 2 host; React widget UIs.
 | **Widget** | One frameless webview (`widget-<id>`) + React content |
 | **Workspace** | Shell prefs: visibility, positions, lock, keep-on-top, arrange, autostart, **theme** |
 | **Widget data** | Content prefs: notes tabs, weather city, calendar mode, pomodoro durations |
-| **WorkspaceHost** | Deep module for tray + settings actions (visibility, lock, arrange, quit, notes/calendar writes…) |
-| **Theme** | Workspace-owned `dark` \| `light`; applied via `data-theme` CSS tokens |
+| **WorkspaceHost** | Deep module for tray + settings + widget lifecycle actions |
+| **Theme** | Workspace-owned `dark` \| `light` \| `system`; CSS `data-theme` + native chrome follow resolved OS/preference |
 | **Locale / CalendarMode** | Default English + Gregorian; optional Jalali (شمسی) via Settings — FA text uses Vazirmatn |
 | **GlassSurface** | Transparent window + acrylic/mica effects + CSS tint (aspirational; runtime is solid chrome today) |
 | **LiveFeed** | Polling snapshot stream (`subscribe` / `getSnapshot`) for crypto & weather |
@@ -25,6 +25,7 @@ Tray-hosted desktop widgets with Win11 chrome. Tauri 2 host; React widget UIs.
 ## Seams (keep thin)
 
 - Controller imports **catalog**, never **registry**
-- Settings UI and tray call **WorkspaceHost**, not store/manager directly
+- Settings UI, tray, and widget lifecycle call **WorkspaceHost**, not store/manager directly
 - Widget content persists via `updateWidgetData` / host helpers; layout via `updateWorkspace` / `updateWidgetState`
-- Theme lives on **Workspace**, not Widget data
+- Theme lives on **Workspace**, not Widget data; host applies CSS + native chrome
+- `settingsStore` / `widgetManager` = host implementation only

@@ -11,7 +11,13 @@ export function weekdayLabels(): readonly string[] {
   return WEEKDAYS_EN;
 }
 
-export function formatTime(date: Date): string {
+export function formatTime(
+  date: Date,
+  timeFormat: "12" | "24" = "24",
+): string {
+  if (timeFormat === "12") {
+    return dayjs(date).format("h:mm:ss A");
+  }
   return dayjs(date).format("HH:mm:ss");
 }
 

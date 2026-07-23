@@ -17,7 +17,8 @@ type TimerAction =
   | { type: "tick"; work: number; short: number; long: number }
   | { type: "toggle" }
   | { type: "reset"; work: number }
-  | { type: "setPhase"; phase: Phase; seconds: number };
+  | { type: "setPhase"; phase: Phase; seconds: number }
+  | { type: "syncDuration"; seconds: number };
 
 function reducer(state: TimerState, action: TimerAction): TimerState {
   switch (action.type) {
@@ -37,6 +38,9 @@ function reducer(state: TimerState, action: TimerAction): TimerState {
         remaining: action.seconds,
         running: false,
       };
+    case "syncDuration":
+      if (state.running || state.remaining === action.seconds) return state;
+      return { ...state, remaining: action.seconds };
     case "tick": {
       if (!state.running) return state;
       if (state.remaining > 1) {
@@ -91,6 +95,13 @@ export function PomodoroWidget() {
     );
     return () => window.clearInterval(id);
   }, [state.running, work, short, long]);
+
+  useEffect(() => {
+    if (state.running) return;
+    const mins =
+      state.phase === "work" ? work : state.phase === "short" ? short : long;
+    dispatch({ type: "syncDuration", seconds: mins * 60 });
+  }, [work, short, long, state.phase, state.running]);
 
   return (
     <div className="flex h-full flex-col items-center justify-between gap-3 px-4 py-4">

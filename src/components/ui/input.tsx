@@ -10,7 +10,7 @@ export function Input({
       className={cn(
         "flex h-8 w-full rounded-md border border-border bg-muted px-2.5 text-[13px] text-foreground outline-none transition-colors",
         "placeholder:text-muted-foreground",
-        "focus:border-white/28",
+        "focus:border-foreground/30",
         "disabled:cursor-not-allowed disabled:opacity-50",
         className,
       )}

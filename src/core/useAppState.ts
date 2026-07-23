@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { listen } from "@tauri-apps/api/event";
-import { applyTheme } from "./theme";
+import { applyTheme, watchSystemTheme } from "./theme";
 import { getState, loadSettings } from "./settingsStore";
 import {
   APP_STATE_CHANGED_EVENT,
@@ -20,7 +20,14 @@ export function useAppState(): {
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
-    applyTheme(state.workspace.theme ?? "dark");
+    applyTheme(state.workspace.theme);
+  }, [state.workspace.theme]);
+
+  useEffect(() => {
+    if (state.workspace.theme !== "system") return;
+    return watchSystemTheme(() => {
+      applyTheme("system");
+    });
   }, [state.workspace.theme]);
 
   useEffect(() => {
@@ -31,7 +38,6 @@ export function useAppState(): {
       const detail = (event as CustomEvent<AppState>).detail;
       if (!detail) return;
       setState(detail);
-      applyTheme(detail.workspace.theme ?? "dark");
       setReady(true);
     };
     window.addEventListener(APP_STATE_CHANGED_EVENT, onLocal);
@@ -40,18 +46,15 @@ export function useAppState(): {
       .then((next) => {
         if (cancelled) return;
         setState(next);
-        applyTheme(next.workspace.theme ?? "dark");
         setReady(true);
       })
       .catch(() => {
         if (cancelled) return;
-        applyTheme(getState().workspace.theme ?? "dark");
         setReady(true);
       });
 
     void listen<AppState>(APP_STATE_CHANGED_EVENT, (event) => {
       setState(event.payload);
-      applyTheme(event.payload.workspace.theme ?? "dark");
       setReady(true);
     })
       .then((fn) => {
@@ -76,14 +79,7 @@ export function useAppState(): {
     refresh: async () => {
       const next = await loadSettings();
       setState(next);
-      applyTheme(next.workspace.theme ?? "dark");
       setReady(true);
     },
   };
-}
-
-/** @deprecated use useAppState */
-export function useAppSettings() {
-  const { state, refresh } = useAppState();
-  return { settings: state, refresh };
 }

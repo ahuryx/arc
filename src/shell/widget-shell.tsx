@@ -16,7 +16,7 @@ export function WidgetShell({ title, children }: WidgetShellProps) {
   return (
     <div className="card">
       <header
-        className={cn("wh", !workspace.locked && "cursor-grab")}
+        className={cn("wh")}
         data-tauri-drag-region={workspace.locked ? undefined : true}
       >
         <span className="wh-title">{title}</span>

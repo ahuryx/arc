@@ -1,16 +1,19 @@
-import {
-  applyFirstRunDefaults,
-  setKeepOnTopSetting,
-} from "./core/workspaceHost";
-import { loadSettings, getWorkspace } from "./core/settingsStore";
-import {
-  applyVisibilityFromSettings,
-  applyWindowFlags,
-  ensureAllWindows,
-} from "./core/widgetManager";
+import { bootWorkspace } from "./core/workspaceHost";
 import { initTray } from "./core/trayController";
+import { loadSettings } from "./core/settingsStore";
+
+declare global {
+  interface Window {
+    __widgetAppBooted?: boolean;
+  }
+}
 
 export async function bootstrap(): Promise<void> {
+  if (window.__widgetAppBooted) {
+    return;
+  }
+  window.__widgetAppBooted = true;
+
   await loadSettings();
 
   try {
@@ -20,24 +23,13 @@ export async function bootstrap(): Promise<void> {
   }
 
   try {
-    await applyFirstRunDefaults();
+    await bootWorkspace();
   } catch (error) {
-    console.error("[bootstrap] applyFirstRunDefaults failed", error);
-  }
-
-  try {
-    await ensureAllWindows();
-    await applyVisibilityFromSettings();
-    await applyWindowFlags();
-
-    if (getWorkspace().keepOnTop) {
-      await setKeepOnTopSetting(true);
-    }
-  } catch (error) {
-    console.error("[bootstrap] window setup failed", error);
+    console.error("[bootstrap] bootWorkspace failed", error);
   }
 }
 
 void bootstrap().catch((error) => {
   console.error("[bootstrap] fatal", error);
+  window.__widgetAppBooted = false;
 });

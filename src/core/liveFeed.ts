@@ -58,7 +58,7 @@ export function createPollingFeed<T>(
     } catch (error) {
       snapshot = {
         ...snapshot,
-        status: snapshot.ts ? "error" : "connecting",
+        status: "error",
         error: error instanceof Error ? error.message : String(error),
         ts: Date.now(),
       };

@@ -13,7 +13,7 @@ type NumberInputProps = Omit<
   step?: number;
 };
 
-function clamp(value: number, min?: number, max?: number): number {
+function clampOptional(value: number, min?: number, max?: number): number {
   let next = value;
   if (typeof min === "number") next = Math.max(min, next);
   if (typeof max === "number") next = Math.min(max, next);
@@ -42,7 +42,11 @@ export function NumberInput({
 
   const commit = (raw: string) => {
     const parsed = Number(raw);
-    const next = clamp(Number.isFinite(parsed) ? parsed : (min ?? 0), min, max);
+    const next = clampOptional(
+      Number.isFinite(parsed) ? parsed : (min ?? 0),
+      min,
+      max,
+    );
     onValueChange(next);
     setDraft(String(next));
   };
@@ -51,7 +55,7 @@ export function NumberInput({
     if (disabled) return;
     const base = Number(draft);
     const current = Number.isFinite(base) ? base : value;
-    const next = clamp(current + direction * step, min, max);
+    const next = clampOptional(current + direction * step, min, max);
     onValueChange(next);
     setDraft(String(next));
   };
@@ -60,7 +64,7 @@ export function NumberInput({
     <div
       className={cn(
         "group relative inline-flex h-8 overflow-hidden rounded-md border border-border bg-muted",
-        "transition-colors focus-within:border-white/28",
+        "transition-colors focus-within:border-foreground/30",
         disabled && "pointer-events-none opacity-50",
         className,
       )}

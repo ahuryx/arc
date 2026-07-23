@@ -2,7 +2,7 @@ import {
   WebviewWindow,
   getAllWebviewWindows,
 } from "@tauri-apps/api/webviewWindow";
-import { availableMonitors, currentMonitor } from "@tauri-apps/api/window";
+import { availableMonitors, primaryMonitor } from "@tauri-apps/api/window";
 import { LogicalSize, PhysicalPosition } from "@tauri-apps/api/dpi";
 import {
   WIDGET_CATALOG,
@@ -17,6 +17,7 @@ import {
   updateWorkspace,
 } from "./settingsStore";
 import type { ArrangeSide, WidgetId } from "./types";
+import { resolveTheme, type ResolvedTheme } from "./theme";
 import {
   SETTINGS_HEIGHT,
   SETTINGS_LABEL,
@@ -25,17 +26,25 @@ import {
   WIDGET_WIDTH,
 } from "./constants";
 
-/** Opaque window chrome; color follows theme. */
-function windowOptions(theme: "dark" | "light" = "dark") {
+const WINDOW_CREATE_TIMEOUT_MS = 10_000;
+
+const CHROME_RGB: Record<ResolvedTheme, [number, number, number, number]> = {
+  light: [244, 244, 245, 255],
+  dark: [14, 14, 16, 255],
+};
+
+/** Opaque window chrome; color follows resolved theme. */
+function windowOptions(theme: ResolvedTheme = "dark") {
   return {
     transparent: false,
     decorations: false,
     shadow: true,
-    backgroundColor:
-      theme === "light"
-        ? ([244, 244, 245, 255] as [number, number, number, number])
-        : ([14, 14, 16, 255] as [number, number, number, number]),
+    backgroundColor: CHROME_RGB[theme],
   };
+}
+
+function currentChromeTheme(): ResolvedTheme {
+  return resolveTheme(getWorkspace().theme);
 }
 
 function appUrl(role?: string): string {
@@ -46,6 +55,26 @@ function appUrl(role?: string): string {
     url.searchParams.set("role", role);
   }
   return url.toString();
+}
+
+function waitForWebviewCreated(
+  win: WebviewWindow,
+  label: string,
+): Promise<void> {
+  return new Promise<void>((resolve, reject) => {
+    const timeout = window.setTimeout(() => {
+      reject(new Error(`Timed out creating window ${label}`));
+    }, WINDOW_CREATE_TIMEOUT_MS);
+
+    win.once("tauri://created", () => {
+      window.clearTimeout(timeout);
+      resolve();
+    });
+    win.once("tauri://error", (event) => {
+      window.clearTimeout(timeout);
+      reject(new Error(String(event.payload)));
+    });
+  });
 }
 
 export async function getWidgetWindow(
@@ -73,24 +102,10 @@ export async function ensureWindow(id: WidgetId): Promise<WebviewWindow> {
     visible: false,
     alwaysOnTop: getWorkspace().keepOnTop,
     focus: false,
-    ...windowOptions(getWorkspace().theme ?? "dark"),
+    ...windowOptions(currentChromeTheme()),
   });
 
-  await new Promise<void>((resolve, reject) => {
-    const timeout = window.setTimeout(() => {
-      reject(new Error(`Timed out creating window ${widget.label}`));
-    }, 10000);
-
-    win.once("tauri://created", () => {
-      window.clearTimeout(timeout);
-      resolve();
-    });
-    win.once("tauri://error", (event) => {
-      window.clearTimeout(timeout);
-      reject(new Error(String(event.payload)));
-    });
-  });
-
+  await waitForWebviewCreated(win, widget.label);
   return win;
 }
 
@@ -118,23 +133,10 @@ export async function openSettingsWindow(): Promise<void> {
     visible: true,
     alwaysOnTop: true,
     focus: true,
-    ...windowOptions(getWorkspace().theme ?? "dark"),
+    ...windowOptions(currentChromeTheme()),
   });
 
-  await new Promise<void>((resolve, reject) => {
-    const timeout = window.setTimeout(() => {
-      reject(new Error("Timed out creating settings window"));
-    }, 10000);
-
-    win.once("tauri://created", () => {
-      window.clearTimeout(timeout);
-      resolve();
-    });
-    win.once("tauri://error", (event) => {
-      window.clearTimeout(timeout);
-      reject(new Error(String(event.payload)));
-    });
-  });
+  await waitForWebviewCreated(win, SETTINGS_LABEL);
 }
 
 export async function setVisible(
@@ -199,6 +201,21 @@ export async function setKeepOnTop(enabled: boolean): Promise<void> {
   }
 }
 
+/** Update native chrome color on existing windows after theme change. */
+export async function applyThemeChrome(theme: ResolvedTheme): Promise<void> {
+  const color = CHROME_RGB[theme];
+  const windows = await getAllWebviewWindows();
+  for (const win of windows) {
+    if (win.label.startsWith("widget-") || win.label === SETTINGS_LABEL) {
+      try {
+        await win.setBackgroundColor(color);
+      } catch (error) {
+        console.error("[manager] setBackgroundColor failed", win.label, error);
+      }
+    }
+  }
+}
+
 /** Hot path during drag — memory only, no disk / no event storm. */
 export function noteWindowPosition(id: WidgetId, x: number, y: number): void {
   patchWidgetStateLocal(id, { x, y });
@@ -223,15 +240,19 @@ export async function setWidgetSide(
 export async function arrangeVisible(): Promise<void> {
   const workspace = getWorkspace();
   const monitors = await availableMonitors();
-  const monitor = (await currentMonitor()) ?? monitors[0] ?? null;
+  // Controller/settings webviews may not sit on the user's display — prefer primary.
+  const monitor = (await primaryMonitor()) ?? monitors[0] ?? null;
 
   if (!monitor) {
     return;
   }
 
+  const scale = monitor.scaleFactor || 1;
   const workArea = monitor.workArea;
-  const margin = workspace.edgeGap;
-  const gap = workspace.widgetGap;
+  // Gaps/sizes are logical CSS px; workArea + setPosition use physical px.
+  const margin = workspace.edgeGap * scale;
+  const gap = workspace.widgetGap * scale;
+  const widgetWidth = WIDGET_WIDTH * scale;
   const maxY = workArea.position.y + workArea.size.height - margin;
   const nextWidgets = { ...workspace.widgets };
 
@@ -239,11 +260,11 @@ export async function arrangeVisible(): Promise<void> {
     const baseX =
       side === "left"
         ? workArea.position.x + margin
-        : workArea.position.x + workArea.size.width - WIDGET_WIDTH - margin;
+        : workArea.position.x + workArea.size.width - widgetWidth - margin;
 
     let y = workArea.position.y + margin;
     let col = 0;
-    const colWidth = WIDGET_WIDTH + gap;
+    const colWidth = widgetWidth + gap;
 
     for (const widget of WIDGET_CATALOG) {
       const state = workspace.widgets[widget.id];
@@ -251,7 +272,7 @@ export async function arrangeVisible(): Promise<void> {
         continue;
       }
 
-      const height = widget.height + WIDGET_CHROME_HEIGHT;
+      const height = (widget.height + WIDGET_CHROME_HEIGHT) * scale;
       if (y + height > maxY && y > workArea.position.y + margin) {
         col += 1;
         y = workArea.position.y + margin;
@@ -273,6 +294,5 @@ export async function arrangeVisible(): Promise<void> {
 }
 
 export async function applyWindowFlags(): Promise<void> {
-  const workspace = getWorkspace();
-  await setKeepOnTop(workspace.keepOnTop);
+  await setKeepOnTop(getWorkspace().keepOnTop);
 }

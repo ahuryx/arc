@@ -1,11 +1,12 @@
 import { useEffect } from "react";
 import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
-import { getWorkspace, updateWidgetState } from "./settingsStore";
 import { WIDGET_BY_LABEL } from "./widgetRegistry";
 import {
-  flushWindowPosition,
-  noteWindowPosition,
-} from "./widgetManager";
+  flushWidgetPosition,
+  getWorkspaceSnapshot,
+  noteWidgetPosition,
+  setWidgetVisibility,
+} from "./workspaceHost";
 
 const POSITION_FLUSH_MS = 280;
 
@@ -30,27 +31,26 @@ export function useWidgetLifecycle(): void {
     void win
       .onCloseRequested(async (event) => {
         event.preventDefault();
-        await win.hide();
-        await updateWidgetState(widget.id, { visible: false });
+        await setWidgetVisibility(widget.id, false);
       })
       .then((fn) => {
         unlistenClose = fn;
       });
 
-    // Use event payload — no extra outerPosition IPC per move.
-    // Memory-only during drag; one persist after settle (fixes FPS hitch).
+    // Event payload only — no outerPosition IPC per move.
+    // Memory during drag; one persist after settle.
     void win
       .onMoved((event) => {
-        if (getWorkspace().locked) {
+        if (getWorkspaceSnapshot().locked) {
           return;
         }
-        noteWindowPosition(widget.id, event.payload.x, event.payload.y);
+        noteWidgetPosition(widget.id, event.payload.x, event.payload.y);
         if (flushTimer != null) {
           window.clearTimeout(flushTimer);
         }
         flushTimer = window.setTimeout(() => {
           flushTimer = undefined;
-          void flushWindowPosition();
+          void flushWidgetPosition();
         }, POSITION_FLUSH_MS);
       })
       .then((fn) => {
@@ -62,7 +62,7 @@ export function useWidgetLifecycle(): void {
       unlistenMove?.();
       if (flushTimer != null) {
         window.clearTimeout(flushTimer);
-        void flushWindowPosition();
+        void flushWidgetPosition();
       }
     };
   }, []);

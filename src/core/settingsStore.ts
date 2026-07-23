@@ -1,5 +1,5 @@
 import { LazyStore } from "@tauri-apps/plugin-store";
-import { emit } from "@tauri-apps/api/event";
+import { emit, listen } from "@tauri-apps/api/event";
 import { WIDGET_CATALOG } from "./widgetCatalog";
 import type {
   AppState,
@@ -17,10 +17,10 @@ function createDefaultWidgets(): WorkspaceSettings["widgets"] {
     WIDGET_CATALOG.map((widget, index) => [
       widget.id,
       {
-        visible: false,
+        visible: true,
         x: 100,
         y: 100 + index * (widget.height + 12),
-        side: "left" as const,
+        side: widget.defaultSide,
       },
     ]),
   ) as WorkspaceSettings["widgets"];
@@ -33,21 +33,22 @@ function defaultNotes(): NotesData {
 
 export const DEFAULT_WORKSPACE: WorkspaceSettings = {
   widgets: createDefaultWidgets(),
-  locked: false,
-  keepOnTop: true,
+  locked: true,
+  keepOnTop: false,
   arrangeSide: "left",
   autoArrange: true,
   edgeGap: ARRANGE_MARGIN,
   widgetGap: ARRANGE_GAP,
   startWithWindows: true,
   initialized: false,
-  theme: "dark",
+  theme: "system",
 };
 
 export const DEFAULT_WIDGET_DATA: WidgetData = {
   notes: defaultNotes(),
-  weather: { city: "Tehran" },
+  weather: { city: "New York" },
   calendar: { mode: "gregorian" },
+  clock: { timeFormat: "12" },
   pomodoro: { work: 25, short: 5, long: 15 },
 };
 
@@ -61,6 +62,19 @@ const store = new LazyStore(STORE_PATH, {
 });
 
 let cached: AppState = structuredClone(DEFAULT_STATE);
+let remoteSyncStarted = false;
+
+/** Keep this webview's cache aligned with writes from other windows. */
+function startRemoteCacheSync(): void {
+  if (remoteSyncStarted) return;
+  remoteSyncStarted = true;
+  void listen<AppState>(APP_STATE_CHANGED_EVENT, (event) => {
+    if (!event.payload) return;
+    cached = migrateStored(event.payload);
+  }).catch(() => {
+    /* no event bus outside Tauri */
+  });
+}
 
 function mergeWidgets(
   stored: Partial<Record<WidgetId, WidgetState>> | undefined,
@@ -73,7 +87,10 @@ function mergeWidgets(
         visible: Boolean(previous.visible),
         x: typeof previous.x === "number" ? previous.x : widgets[meta.id].x,
         y: typeof previous.y === "number" ? previous.y : widgets[meta.id].y,
-        side: previous.side === "right" ? "right" : "left",
+        side:
+          previous.side === "right" || previous.side === "left"
+            ? previous.side
+            : widgets[meta.id].side,
       };
     }
   }
@@ -101,7 +118,7 @@ function migrateNotes(raw: unknown): NotesData {
   return defaultNotes();
 }
 
-/** Accepts new AppState or legacy flat AppSettings. */
+/** Accepts new AppState or legacy flat shape. */
 function migrateStored(raw: unknown): AppState {
   const defaults: AppState = {
     workspace: {
@@ -113,6 +130,7 @@ function migrateStored(raw: unknown): AppState {
       notes: defaultNotes(),
       weather: { ...DEFAULT_WIDGET_DATA.weather },
       calendar: { ...DEFAULT_WIDGET_DATA.calendar },
+      clock: { ...DEFAULT_WIDGET_DATA.clock },
       pomodoro: { ...DEFAULT_WIDGET_DATA.pomodoro },
     },
   };
@@ -144,7 +162,12 @@ function migrateStored(raw: unknown): AppState {
           typeof workspace.widgetGap === "number"
             ? workspace.widgetGap
             : defaults.workspace.widgetGap,
-        theme: workspace.theme === "light" ? "light" : "dark",
+        theme:
+          workspace.theme === "light" ||
+          workspace.theme === "dark" ||
+          workspace.theme === "system"
+            ? workspace.theme
+            : defaults.workspace.theme,
       },
       data: {
         notes: migrateNotes(data.notes),
@@ -156,6 +179,12 @@ function migrateStored(raw: unknown): AppState {
         },
         calendar: {
           mode: data.calendar?.mode === "jalali" ? "jalali" : "gregorian",
+        },
+        clock: {
+          timeFormat:
+            data.clock?.timeFormat === "12" || data.clock?.timeFormat === "24"
+              ? data.clock.timeFormat
+              : defaults.data.clock.timeFormat,
         },
         pomodoro: {
           work: Number(data.pomodoro?.work) || defaults.data.pomodoro.work,
@@ -193,6 +222,7 @@ function migrateStored(raw: unknown): AppState {
             : defaults.data.weather.city,
       },
       calendar: { ...defaults.data.calendar },
+      clock: { ...defaults.data.clock },
       pomodoro: { ...defaults.data.pomodoro },
     },
   };
@@ -209,8 +239,8 @@ async function persist(): Promise<void> {
 
   try {
     await store.set("app", snapshot);
-  } catch {
-    // Offline / browser preview — keep in-memory cache.
+  } catch (error) {
+    console.error("[store] persist failed", error);
   }
   try {
     await emit(APP_STATE_CHANGED_EVENT, snapshot);
@@ -223,16 +253,12 @@ export async function loadSettings(): Promise<AppState> {
   await store.init();
   const stored = await store.get<unknown>("app");
   cached = migrateStored(stored);
+  startRemoteCacheSync();
   return getState();
 }
 
 export function getState(): AppState {
   return structuredClone(cached);
-}
-
-/** @deprecated use getState */
-export function getSettings(): AppState {
-  return getState();
 }
 
 export function getWorkspace(): WorkspaceSettings {
@@ -274,32 +300,15 @@ export async function updateWidgetData(
       calendar: patch.calendar
         ? { ...cached.data.calendar, ...patch.calendar }
         : cached.data.calendar,
+      clock: patch.clock
+        ? { ...cached.data.clock, ...patch.clock }
+        : cached.data.clock,
       pomodoro: patch.pomodoro
         ? { ...cached.data.pomodoro, ...patch.pomodoro }
         : cached.data.pomodoro,
     },
   });
   await persist();
-  return getState();
-}
-
-/** @deprecated Prefer updateWorkspace / updateWidgetData */
-export async function updateSettings(
-  patch: Partial<WorkspaceSettings> & {
-    weatherCity?: string;
-    notes?: string | NotesData;
-  },
-): Promise<AppState> {
-  const { weatherCity, notes, ...workspacePatch } = patch;
-  if (Object.keys(workspacePatch).length > 0) {
-    await updateWorkspace(workspacePatch);
-  }
-  if (weatherCity !== undefined || notes !== undefined) {
-    await updateWidgetData({
-      ...(weatherCity !== undefined ? { weather: { city: weatherCity } } : {}),
-      ...(notes !== undefined ? { notes: migrateNotes(notes) } : {}),
-    });
-  }
   return getState();
 }
 

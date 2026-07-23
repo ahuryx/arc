@@ -8,7 +8,8 @@ export type WidgetId =
 
 export type ArrangeSide = "left" | "right";
 
-export type ThemeId = "dark" | "light";
+/** Preference: fixed dark/light, or follow OS. */
+export type ThemeId = "dark" | "light" | "system";
 
 export interface WidgetState {
   visible: boolean;
@@ -33,7 +34,9 @@ export interface WorkspaceSettings {
   initialized: boolean;
   /** One-shot: show Clock when every widget was left hidden. */
   hostRecoveryV1?: boolean;
-  /** App chrome theme (Workspace-owned). */
+  /** One-shot: catalog default left/right columns. */
+  sideLayoutV1?: boolean;
+  /** App chrome theme preference (Workspace-owned). */
   theme: ThemeId;
 }
 
@@ -49,11 +52,15 @@ export interface NotesData {
 
 export type CalendarMode = "gregorian" | "jalali";
 
+/** Clock display: 12-hour (AM/PM) or 24-hour. */
+export type TimeFormat = "12" | "24";
+
 /** Per-widget content prefs — separate from WorkspaceSettings. */
 export interface WidgetData {
   notes: NotesData;
   weather: { city: string };
   calendar: { mode: CalendarMode };
+  clock: { timeFormat: TimeFormat };
   pomodoro: { work: number; short: number; long: number };
 }
 
@@ -62,9 +69,4 @@ export interface AppState {
   data: WidgetData;
 }
 
-/** @deprecated Prefer AppState — kept for event name stability. */
-export type AppSettings = AppState;
-
 export const APP_STATE_CHANGED_EVENT = "app-state-changed";
-/** Alias used by older listeners. */
-export const SETTINGS_CHANGED_EVENT = APP_STATE_CHANGED_EVENT;

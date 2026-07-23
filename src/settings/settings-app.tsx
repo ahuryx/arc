@@ -1,5 +1,4 @@
-import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
-import { useEffect, useId, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { X } from "lucide-react";
 import {
   SettingsRow,
@@ -12,10 +11,10 @@ import { Label } from "@/components/ui/label";
 import { NumberInput } from "@/components/ui/number-input";
 import { Toggle } from "@/components/ui/toggle";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
-import { applyTheme } from "@/core/theme";
 import { useAppState } from "@/core/useAppState";
 import { WIDGET_CATALOG } from "@/core/widgetCatalog";
 import {
+  closeSettings,
   quitApp,
   runAutoArrange,
   setArrangeGaps,
@@ -26,21 +25,29 @@ import {
   setLocked,
   setPomodoroDurations,
   setTheme,
+  setTimeFormat,
   setWeatherCity,
   setWidgetSide,
   setWidgetVisibility,
 } from "@/core/workspaceHost";
 
+const GAP_COMMIT_MS = 250;
+
 export default function SettingsApp() {
   const { workspace, data, ready } = useAppState();
   const [cityDraft, setCityDraft] = useState(data.weather.city);
   const [pomoDraft, setPomoDraft] = useState(data.pomodoro);
+  const [edgeDraft, setEdgeDraft] = useState(workspace.edgeGap);
+  const [widgetGapDraft, setWidgetGapDraft] = useState(workspace.widgetGap);
   const [cityMsg, setCityMsg] = useState("");
   const [savingCity, setSavingCity] = useState(false);
   const [savingPomo, setSavingPomo] = useState(false);
   const edgeGapId = useId();
   const widgetGapId = useId();
   const cityId = useId();
+  const gapTimer = useRef<number | undefined>(undefined);
+  const edgeRef = useRef(edgeDraft);
+  const widgetGapRef = useRef(widgetGapDraft);
 
   useEffect(() => {
     setCityDraft(data.weather.city);
@@ -49,6 +56,32 @@ export default function SettingsApp() {
   useEffect(() => {
     setPomoDraft(data.pomodoro);
   }, [data.pomodoro]);
+
+  useEffect(() => {
+    setEdgeDraft(workspace.edgeGap);
+    edgeRef.current = workspace.edgeGap;
+  }, [workspace.edgeGap]);
+
+  useEffect(() => {
+    setWidgetGapDraft(workspace.widgetGap);
+    widgetGapRef.current = workspace.widgetGap;
+  }, [workspace.widgetGap]);
+
+  useEffect(() => {
+    return () => {
+      if (gapTimer.current != null) window.clearTimeout(gapTimer.current);
+    };
+  }, []);
+
+  function scheduleGaps(edge: number, widgetGap: number): void {
+    edgeRef.current = edge;
+    widgetGapRef.current = widgetGap;
+    if (gapTimer.current != null) window.clearTimeout(gapTimer.current);
+    gapTimer.current = window.setTimeout(() => {
+      gapTimer.current = undefined;
+      void setArrangeGaps(edgeRef.current, widgetGapRef.current);
+    }, GAP_COMMIT_MS);
+  }
 
   return (
     <div className="card">
@@ -62,7 +95,7 @@ export default function SettingsApp() {
             className="size-6 text-muted-foreground hover:text-foreground"
             title="Close"
             aria-label="Close"
-            onClick={() => void getCurrentWebviewWindow().hide()}
+            onClick={() => void closeSettings()}
           >
             <X className="size-3" />
           </Button>
@@ -80,15 +113,19 @@ export default function SettingsApp() {
               <ToggleGroup
                 type="single"
                 size="sm"
-                value={workspace.theme ?? "dark"}
+                value={workspace.theme}
                 onValueChange={(value) => {
-                  if (value === "light" || value === "dark") {
-                    applyTheme(value);
+                  if (
+                    value === "light" ||
+                    value === "dark" ||
+                    value === "system"
+                  ) {
                     void setTheme(value);
                   }
                 }}
                 aria-label="Theme"
               >
+                <ToggleGroupItem value="system">System</ToggleGroupItem>
                 <ToggleGroupItem value="dark">Dark</ToggleGroupItem>
                 <ToggleGroupItem value="light">Light</ToggleGroupItem>
               </ToggleGroup>
@@ -101,6 +138,22 @@ export default function SettingsApp() {
                 }
                 aria-label="Enable Shamsi calendar"
               />
+            </SettingsRow>
+            <SettingsRow label="Clock format">
+              <ToggleGroup
+                type="single"
+                size="sm"
+                value={data.clock?.timeFormat === "12" ? "12" : "24"}
+                onValueChange={(value) => {
+                  if (value === "12" || value === "24") {
+                    void setTimeFormat(value);
+                  }
+                }}
+                aria-label="Clock format"
+              >
+                <ToggleGroupItem value="12">12h</ToggleGroupItem>
+                <ToggleGroupItem value="24">24h</ToggleGroupItem>
+              </ToggleGroup>
             </SettingsRow>
             {data.calendar.mode === "jalali" ? (
               <p className="fa text-[11px] text-muted-foreground" dir="rtl">
@@ -117,11 +170,12 @@ export default function SettingsApp() {
                   <ToggleGroup
                     type="single"
                     size="sm"
-                    value={state.side}
+                    value={state.side ?? "left"}
                     onValueChange={(value) => {
-                      if (value === "left" || value === "right") {
-                        void setWidgetSide(widget.id, value);
-                      }
+                      // Radix allows clear — ignore empty so side never blanks.
+                      if (value !== "left" && value !== "right") return;
+                      if (value === state.side) return;
+                      void setWidgetSide(widget.id, value);
                     }}
                     aria-label={`${widget.title} side`}
                   >
@@ -172,10 +226,11 @@ export default function SettingsApp() {
                 min={0}
                 max={80}
                 className="w-[84px]"
-                value={workspace.edgeGap}
-                onValueChange={(next) =>
-                  void setArrangeGaps(next, workspace.widgetGap)
-                }
+                value={edgeDraft}
+                onValueChange={(next) => {
+                  setEdgeDraft(next);
+                  scheduleGaps(next, widgetGapRef.current);
+                }}
               />
             </SettingsRow>
             <SettingsRow label="Gap between widgets (px)" htmlFor={widgetGapId}>
@@ -184,10 +239,11 @@ export default function SettingsApp() {
                 min={0}
                 max={48}
                 className="w-[84px]"
-                value={workspace.widgetGap}
-                onValueChange={(next) =>
-                  void setArrangeGaps(workspace.edgeGap, next)
-                }
+                value={widgetGapDraft}
+                onValueChange={(next) => {
+                  setWidgetGapDraft(next);
+                  scheduleGaps(edgeRef.current, next);
+                }}
               />
             </SettingsRow>
             <Button
@@ -216,11 +272,16 @@ export default function SettingsApp() {
                 size="sm"
                 disabled={savingCity}
                 onClick={() => {
+                  const trimmed = cityDraft.trim();
+                  if (!trimmed) {
+                    setCityMsg("Enter a city name");
+                    return;
+                  }
                   setSavingCity(true);
-                  void setWeatherCity(cityDraft).finally(() => {
-                    setSavingCity(false);
-                    setCityMsg(`Updated → ${cityDraft.trim() || "—"}`);
-                  });
+                  void setWeatherCity(trimmed)
+                    .then(() => setCityMsg(`Updated → ${trimmed}`))
+                    .catch(() => setCityMsg("Could not save city"))
+                    .finally(() => setSavingCity(false));
                 }}
               >
                 {savingCity ? "Saving…" : "Update"}
@@ -254,7 +315,7 @@ export default function SettingsApp() {
                     <NumberInput
                       id={fieldId}
                       min={1}
-                      max={180}
+                      max={key === "work" ? 120 : 60}
                       className="w-full"
                       value={pomoDraft[key]}
                       onValueChange={(next) =>
@@ -289,7 +350,7 @@ export default function SettingsApp() {
                 aria-label="Start with Windows"
               />
             </SettingsRow>
-            <SettingsRow label="Quit Glass Widgets">
+            <SettingsRow label="Quit">
               <Button
                 type="button"
                 variant="outline"

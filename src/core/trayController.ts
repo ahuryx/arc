@@ -1,26 +1,33 @@
 import { TrayIcon } from "@tauri-apps/api/tray";
 import { Menu } from "@tauri-apps/api/menu";
 import { defaultWindowIcon } from "@tauri-apps/api/app";
-import { listen } from "@tauri-apps/api/event";
-import { getWorkspace } from "./settingsStore";
+import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 import { APP_STATE_CHANGED_EVENT } from "./types";
 import { WIDGET_CATALOG } from "./widgetCatalog";
+import { watchSystemTheme } from "./theme";
 import {
+  getWorkspaceSnapshot,
   openSettings,
   quitApp,
   runAutoArrange,
   setAutostart,
   setKeepOnTopSetting,
   setLocked,
+  syncSystemThemeChrome,
+  syncWindowFlags,
   toggleWidgetVisibility,
 } from "./workspaceHost";
-import { applyWindowFlags } from "./widgetManager";
+
+const TRAY_ID = "widget-app-tray";
 
 let trayInstance: TrayIcon | null = null;
 let trayMenu: Menu | null = null;
+let unlistenState: UnlistenFn | null = null;
+let unwatchSystem: (() => void) | null = null;
+let initPromise: Promise<void> | null = null;
 
 async function buildTrayMenu(): Promise<Menu> {
-  const workspace = getWorkspace();
+  const workspace = getWorkspaceSnapshot();
 
   const widgetItems = WIDGET_CATALOG.map((widget) => ({
     id: `widget-${widget.id}`,
@@ -49,7 +56,7 @@ async function buildTrayMenu(): Promise<Menu> {
         text: "Lock widgets",
         checked: workspace.locked,
         action: async () => {
-          await setLocked(!getWorkspace().locked);
+          await setLocked(!getWorkspaceSnapshot().locked);
           await refreshTrayMenu();
         },
       },
@@ -58,13 +65,13 @@ async function buildTrayMenu(): Promise<Menu> {
         text: "Keep on top",
         checked: workspace.keepOnTop,
         action: async () => {
-          await setKeepOnTopSetting(!getWorkspace().keepOnTop);
+          await setKeepOnTopSetting(!getWorkspaceSnapshot().keepOnTop);
           await refreshTrayMenu();
         },
       },
       {
-        id: "auto-arrange",
-        text: "Auto-arrange",
+        id: "arrange-now",
+        text: "Arrange now",
         action: async () => {
           await runAutoArrange();
         },
@@ -74,7 +81,7 @@ async function buildTrayMenu(): Promise<Menu> {
         text: "Start with Windows",
         checked: workspace.startWithWindows,
         action: async () => {
-          await setAutostart(!getWorkspace().startWithWindows);
+          await setAutostart(!getWorkspaceSnapshot().startWithWindows);
           await refreshTrayMenu();
         },
       },
@@ -98,36 +105,79 @@ async function refreshTrayMenu(): Promise<void> {
   await trayInstance.setMenu(trayMenu);
 }
 
+async function onStateChanged(): Promise<void> {
+  await refreshTrayMenu();
+  await syncWindowFlags();
+  await syncSystemThemeChrome();
+}
+
+const STATE_SYNC_MS = 150;
+let stateSyncTimer: number | undefined;
+
+function scheduleStateSync(): void {
+  if (stateSyncTimer != null) window.clearTimeout(stateSyncTimer);
+  stateSyncTimer = window.setTimeout(() => {
+    stateSyncTimer = undefined;
+    void onStateChanged();
+  }, STATE_SYNC_MS);
+}
+
 export async function initTray(): Promise<void> {
   if (trayInstance) {
     return;
   }
+  if (initPromise) {
+    return initPromise;
+  }
 
-  trayMenu = await buildTrayMenu();
+  initPromise = (async () => {
+    // Kill orphans from HMR / prior boots (same id can stack on Windows).
+    try {
+      await TrayIcon.removeById(TRAY_ID);
+    } catch {
+      /* none */
+    }
 
-  let icon;
+    trayMenu = await buildTrayMenu();
+
+    let icon;
+    try {
+      icon = await defaultWindowIcon();
+    } catch (error) {
+      console.error("[tray] defaultWindowIcon failed", error);
+    }
+
+    if (!icon) {
+      throw new Error(
+        "Tray icon unavailable: defaultWindowIcon returned null. Check core:app:allow-default-window-icon and bundle icons.",
+      );
+    }
+
+    trayInstance = await TrayIcon.new({
+      id: TRAY_ID,
+      menu: trayMenu,
+      showMenuOnLeftClick: false,
+      tooltip: "Widget App",
+      icon,
+    });
+
+    if (unlistenState) {
+      unlistenState();
+      unlistenState = null;
+    }
+    unlistenState = await listen(APP_STATE_CHANGED_EVENT, () => {
+      scheduleStateSync();
+    });
+
+    unwatchSystem?.();
+    unwatchSystem = watchSystemTheme(() => {
+      void syncSystemThemeChrome();
+    });
+  })();
+
   try {
-    icon = await defaultWindowIcon();
-  } catch (error) {
-    console.error("[tray] defaultWindowIcon failed", error);
+    await initPromise;
+  } finally {
+    initPromise = null;
   }
-
-  if (!icon) {
-    throw new Error(
-      "Tray icon unavailable: defaultWindowIcon returned null. Check core:app:allow-default-window-icon and bundle icons.",
-    );
-  }
-
-  trayInstance = await TrayIcon.new({
-    id: "widget-app-tray",
-    menu: trayMenu,
-    showMenuOnLeftClick: false,
-    tooltip: "Widget App",
-    icon,
-  });
-
-  await listen(APP_STATE_CHANGED_EVENT, async () => {
-    await refreshTrayMenu();
-    await applyWindowFlags();
-  });
 }
