@@ -77,8 +77,8 @@ async function buildTrayMenu(): Promise<Menu> {
         },
       },
       {
-        id: "start-with-windows",
-        text: "Start with Windows",
+        id: "start-with-os",
+        text: "Launch at startup",
         checked: workspace.startWithWindows,
         action: async () => {
           await setAutostart(!getWorkspaceSnapshot().startWithWindows);

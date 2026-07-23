@@ -363,11 +363,11 @@ export default function SettingsApp() {
           </SettingsSection>
 
           <SettingsSection title="General">
-            <SettingsRow label="Start with Windows">
+            <SettingsRow label="Launch at startup">
               <Toggle
                 checked={workspace.startWithWindows}
                 onCheckedChange={(checked) => void setAutostart(checked)}
-                aria-label="Start with Windows"
+                aria-label="Launch at startup"
               />
             </SettingsRow>
             <SettingsRow label="Reset to defaults">

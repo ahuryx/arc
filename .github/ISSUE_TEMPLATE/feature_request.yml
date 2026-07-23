@@ -1,0 +1,33 @@
+name: Feature request
+description: Suggest an idea or enhancement for Arc
+title: "[Feature]: "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Describe the problem you want solved and your proposed approach.
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: What are you trying to accomplish? What is missing or awkward today?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution
+      description: How should Arc behave if this were implemented?
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: Other approaches you thought about, if any.
+  - type: textarea
+    id: context
+    attributes:
+      label: Additional context
+      description: Mockups, references, or related issues.
