@@ -77,7 +77,7 @@ export function NumberInput({
         disabled={disabled}
         value={draft}
         className={cn(
-          "num h-full min-w-0 flex-1 border-0 bg-transparent pe-7 ps-2.5 text-[13px] text-foreground outline-none",
+          "h-full min-w-0 flex-1 border-0 bg-transparent pe-7 ps-2.5 text-[13px] text-foreground tabular-nums outline-none",
         )}
         onFocus={() => setFocused(true)}
         onChange={(event) => {

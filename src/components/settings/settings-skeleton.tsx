@@ -6,7 +6,7 @@ export function SettingsSkeleton() {
       {Array.from({ length: 4 }, (_, index) => (
         <section
           key={index}
-          className="flex flex-col gap-3 rounded-lg border border-border bg-[var(--section-bg)] p-3"
+          className="flex flex-col gap-3 rounded-lg border border-border bg-muted/50 p-3"
         >
           <Skeleton className="h-2.5 w-24" />
           <div className="flex flex-col gap-2.5">

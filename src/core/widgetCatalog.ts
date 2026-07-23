@@ -35,7 +35,7 @@ export const WIDGET_CATALOG: WidgetMeta[] = [
     id: "crypto",
     label: "widget-crypto",
     title: "Crypto",
-    height: 392,
+    height: 460,
     defaultSide: "left",
   },
   {

@@ -55,6 +55,18 @@ export type CalendarMode = "gregorian" | "jalali";
 /** Clock display: 12-hour (AM/PM) or 24-hour. */
 export type TimeFormat = "12" | "24";
 
+export type CryptoQuote = "usd" | "toman";
+
+export interface CryptoRow {
+  id: string;
+  symbol: string;
+  quote: CryptoQuote;
+}
+
+export interface CryptoData {
+  rows: CryptoRow[];
+}
+
 /** Per-widget content prefs — separate from WorkspaceSettings. */
 export interface WidgetData {
   notes: NotesData;
@@ -62,6 +74,7 @@ export interface WidgetData {
   calendar: { mode: CalendarMode };
   clock: { timeFormat: TimeFormat };
   pomodoro: { work: number; short: number; long: number };
+  crypto: CryptoData;
 }
 
 export interface AppState {

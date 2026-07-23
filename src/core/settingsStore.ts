@@ -3,6 +3,9 @@ import { emit, listen } from "@tauri-apps/api/event";
 import { WIDGET_CATALOG } from "./widgetCatalog";
 import type {
   AppState,
+  CryptoData,
+  CryptoQuote,
+  CryptoRow,
   NotesData,
   WidgetData,
   WidgetId,
@@ -11,6 +14,7 @@ import type {
 } from "./types";
 import { APP_STATE_CHANGED_EVENT } from "./types";
 import { ARRANGE_GAP, ARRANGE_MARGIN, STORE_PATH } from "./constants";
+import { defaultCryptoData } from "@/feeds/crypto/defaults";
 
 function createDefaultWidgets(): WorkspaceSettings["widgets"] {
   return Object.fromEntries(
@@ -29,6 +33,38 @@ function createDefaultWidgets(): WorkspaceSettings["widgets"] {
 function defaultNotes(): NotesData {
   const id = "tab-1";
   return { tabs: [{ id, body: "" }], active: id };
+}
+
+function defaultCrypto(): CryptoData {
+  return defaultCryptoData();
+}
+
+function migrateCrypto(raw: unknown): CryptoData {
+  const defaults = defaultCrypto();
+  if (!raw || typeof raw !== "object") {
+    return defaults;
+  }
+  const obj = raw as Partial<CryptoData> & { nobitexEnabled?: unknown };
+  const rows: CryptoRow[] = Array.isArray(obj.rows)
+    ? obj.rows
+        .filter(
+          (row): row is CryptoRow =>
+            !!row &&
+            typeof row === "object" &&
+            typeof row.id === "string" &&
+            typeof row.symbol === "string" &&
+            (row.quote === "usd" || row.quote === "toman"),
+        )
+        .map((row) => ({
+          id: row.id,
+          symbol: row.symbol.toUpperCase(),
+          quote: row.quote as CryptoQuote,
+        }))
+    : defaults.rows;
+
+  return {
+    rows: rows.length > 0 ? rows : defaults.rows,
+  };
 }
 
 export const DEFAULT_WORKSPACE: WorkspaceSettings = {
@@ -50,6 +86,7 @@ export const DEFAULT_WIDGET_DATA: WidgetData = {
   calendar: { mode: "gregorian" },
   clock: { timeFormat: "12" },
   pomodoro: { work: 25, short: 5, long: 15 },
+  crypto: defaultCrypto(),
 };
 
 export const DEFAULT_STATE: AppState = {
@@ -132,6 +169,7 @@ function migrateStored(raw: unknown): AppState {
       calendar: { ...DEFAULT_WIDGET_DATA.calendar },
       clock: { ...DEFAULT_WIDGET_DATA.clock },
       pomodoro: { ...DEFAULT_WIDGET_DATA.pomodoro },
+      crypto: defaultCrypto(),
     },
   };
 
@@ -191,6 +229,7 @@ function migrateStored(raw: unknown): AppState {
           short: Number(data.pomodoro?.short) || defaults.data.pomodoro.short,
           long: Number(data.pomodoro?.long) || defaults.data.pomodoro.long,
         },
+        crypto: migrateCrypto(data.crypto),
       },
     };
   }
@@ -224,6 +263,7 @@ function migrateStored(raw: unknown): AppState {
       calendar: { ...defaults.data.calendar },
       clock: { ...defaults.data.clock },
       pomodoro: { ...defaults.data.pomodoro },
+      crypto: defaultCrypto(),
     },
   };
 }
@@ -274,6 +314,28 @@ export async function saveState(state: AppState): Promise<void> {
   await persist();
 }
 
+/** Wipe prefs — next host boot path treats as first run when initialized is false. */
+export async function resetSettingsToDefaults(): Promise<AppState> {
+  cached = migrateStored({
+    workspace: {
+      ...DEFAULT_WORKSPACE,
+      widgets: createDefaultWidgets(),
+      initialized: false,
+    },
+    data: {
+      ...DEFAULT_WIDGET_DATA,
+      notes: defaultNotes(),
+      weather: { ...DEFAULT_WIDGET_DATA.weather },
+      calendar: { ...DEFAULT_WIDGET_DATA.calendar },
+      clock: { ...DEFAULT_WIDGET_DATA.clock },
+      pomodoro: { ...DEFAULT_WIDGET_DATA.pomodoro },
+      crypto: defaultCrypto(),
+    },
+  });
+  await persist();
+  return getState();
+}
+
 export async function updateWorkspace(
   patch: Partial<WorkspaceSettings>,
 ): Promise<AppState> {
@@ -306,6 +368,13 @@ export async function updateWidgetData(
       pomodoro: patch.pomodoro
         ? { ...cached.data.pomodoro, ...patch.pomodoro }
         : cached.data.pomodoro,
+      crypto: patch.crypto
+        ? migrateCrypto({
+            ...cached.data.crypto,
+            ...patch.crypto,
+            rows: patch.crypto.rows ?? cached.data.crypto.rows,
+          })
+        : cached.data.crypto,
     },
   });
   await persist();

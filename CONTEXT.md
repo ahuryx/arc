@@ -10,7 +10,7 @@ Tray-hosted desktop widgets with Win11 chrome. Tauri 2 host; React widget UIs.
 | **Workspace** | Shell prefs: visibility, positions, lock, keep-on-top, arrange, autostart, **theme** |
 | **Widget data** | Content prefs: notes tabs, weather city, calendar mode, pomodoro durations |
 | **WorkspaceHost** | Deep module for tray + settings + widget lifecycle actions |
-| **Theme** | Workspace-owned `dark` \| `light` \| `system`; CSS `data-theme` + native chrome follow resolved OS/preference |
+| **Theme** | Workspace-owned `dark` \| `light` \| `system`; CSS `.dark` class + native chrome follow resolved OS/preference |
 | **Locale / CalendarMode** | Default English + Gregorian; optional Jalali (شمسی) via Settings — FA text uses Vazirmatn |
 | **GlassSurface** | Transparent window + acrylic/mica effects + CSS tint (aspirational; runtime is solid chrome today) |
 | **LiveFeed** | Polling snapshot stream (`subscribe` / `getSnapshot`) for crypto & weather |

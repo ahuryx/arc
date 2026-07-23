@@ -1,3 +1,4 @@
+import { Switch } from "@/components/ui/switch";
 import { cn } from "@/lib/utils";
 
 interface ToggleProps {
@@ -7,7 +8,7 @@ interface ToggleProps {
   "aria-label"?: string;
 }
 
-/** Lab Glass Widgets toggle (exact .toggle / .toggle.on). */
+/** Boolean switch — thin wrapper kept for existing settings call sites. */
 export function Toggle({
   checked,
   onCheckedChange,
@@ -15,12 +16,10 @@ export function Toggle({
   ...props
 }: ToggleProps) {
   return (
-    <button
-      type="button"
-      role="switch"
-      aria-checked={checked}
-      className={cn("toggle", checked && "on", className)}
-      onClick={() => onCheckedChange(!checked)}
+    <Switch
+      checked={checked}
+      onCheckedChange={onCheckedChange}
+      className={cn(className)}
       {...props}
     />
   );

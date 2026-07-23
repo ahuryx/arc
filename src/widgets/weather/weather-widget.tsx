@@ -36,7 +36,7 @@ export function WeatherWidget() {
 
   if (!snapshot.data) {
     return (
-      <div className="px-4 py-4 text-[12px] text-down" role="alert">
+      <div className="px-4 py-4 text-[12px] text-destructive" role="alert">
         {snapshot.error ?? "Weather unavailable"}
       </div>
     );
@@ -53,7 +53,7 @@ export function WeatherWidget() {
           <WeatherIcon code={w.code} size="lg" alt={w.condition} />
         </div>
         <div className="min-w-0 flex-1">
-          <div className="num text-[40px] font-extralight leading-none tracking-tight text-foreground">
+          <div className="text-[40px] font-extralight leading-none tracking-tight text-foreground tabular-nums">
             {w.temperature}°
           </div>
           <div className="mt-1 truncate text-[12px] text-muted-foreground">
@@ -81,14 +81,14 @@ export function WeatherWidget() {
                 night={false}
                 alt={day.condition}
               />
-              <span className="num text-[11px] text-foreground/80">
+              <span className="text-[11px] text-foreground/80 tabular-nums">
                 {day.low}/{day.high}°
               </span>
             </div>
           ))}
         </div>
       ) : (
-        <div className="num flex flex-wrap gap-x-3 gap-y-1 text-[11px] text-muted-foreground">
+        <div className="flex flex-wrap gap-x-3 gap-y-1 text-[11px] text-muted-foreground tabular-nums">
           {w.wind != null ? <span>Wind {w.wind}</span> : null}
           {w.humidity != null ? <span>Humidity {w.humidity}%</span> : null}
         </div>

@@ -21,7 +21,7 @@ export function ClockWidget() {
 
   return (
     <div className="flex h-full flex-col items-center justify-center gap-1.5 px-4 py-3">
-      <div className="num text-[44px] font-extralight leading-none tracking-tight text-foreground tabular-nums">
+      <div className="text-[44px] font-extralight leading-none tracking-tight text-foreground tabular-nums">
         {formatTime(now, timeFormat)}
       </div>
       <div className="flex flex-col items-center gap-0.5">
@@ -30,7 +30,7 @@ export function ClockWidget() {
         </div>
         {showJalali ? (
           <div
-            className={cn("fa text-[12px] font-medium text-foreground/75")}
+            className={cn("font-fa text-[12px] font-medium text-foreground/75")}
             dir="rtl"
           >
             {formatJalaliDate(now)}

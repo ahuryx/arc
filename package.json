@@ -10,6 +10,7 @@
     "tauri": "tauri"
   },
   "dependencies": {
+    "@ledgerhq/crypto-icons": "^2.0.5",
     "@radix-ui/react-label": "^2.1.11",
     "@radix-ui/react-popover": "^1.1.19",
     "@radix-ui/react-select": "^2.3.3",
@@ -28,8 +29,10 @@
     "dayjs": "^1.11.21",
     "jalaliday": "^3.1.1",
     "lucide-react": "^1.24.0",
+    "radix-ui": "^1.6.4",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
+    "shadcn": "^4.14.0",
     "tailwind-merge": "^3.6.0"
   },
   "devDependencies": {

@@ -4,8 +4,18 @@ import {
   SettingsRow,
   SettingsSection,
 } from "@/components/settings/settings-section";
+import { CryptoSettingsPanel } from "@/components/settings/crypto-settings-panel";
 import { SettingsSkeleton } from "@/components/settings/settings-skeleton";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { NumberInput } from "@/components/ui/number-input";
@@ -16,6 +26,7 @@ import { WIDGET_CATALOG } from "@/core/widgetCatalog";
 import {
   closeSettings,
   quitApp,
+  resetToDefaults,
   runAutoArrange,
   setArrangeGaps,
   setAutoArrange,
@@ -42,6 +53,8 @@ export default function SettingsApp() {
   const [cityMsg, setCityMsg] = useState("");
   const [savingCity, setSavingCity] = useState(false);
   const [savingPomo, setSavingPomo] = useState(false);
+  const [resetting, setResetting] = useState(false);
+  const [resetOpen, setResetOpen] = useState(false);
   const edgeGapId = useId();
   const widgetGapId = useId();
   const cityId = useId();
@@ -84,10 +97,15 @@ export default function SettingsApp() {
   }
 
   return (
-    <div className="card">
-      <header className="wh" data-tauri-drag-region>
-        <span className="wh-title">Settings</span>
-        <div className="wh-actions" data-no-drag>
+    <div className="relative flex size-full flex-col overflow-hidden rounded-lg border border-border bg-card text-card-foreground">
+      <header
+        className="flex h-8 shrink-0 items-center justify-between border-b border-border px-2.5 pe-1.5"
+        data-tauri-drag-region
+      >
+        <span className="truncate text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+          Settings
+        </span>
+        <div className="flex items-center gap-0.5" data-no-drag>
           <Button
             type="button"
             variant="ghost"
@@ -103,11 +121,11 @@ export default function SettingsApp() {
       </header>
 
       {!ready ? (
-        <div className="wb wb-scroll">
+        <div className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto">
           <SettingsSkeleton />
         </div>
       ) : (
-        <div className="wb wb-scroll flex flex-col gap-3 px-4 py-3">
+        <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-x-hidden overflow-y-auto px-4 py-3">
           <SettingsSection title="Appearance">
             <SettingsRow label="Theme">
               <ToggleGroup
@@ -156,7 +174,7 @@ export default function SettingsApp() {
               </ToggleGroup>
             </SettingsRow>
             {data.calendar.mode === "jalali" ? (
-              <p className="fa text-[11px] text-muted-foreground" dir="rtl">
+              <p className="font-fa text-[11px] text-muted-foreground" dir="rtl">
                 تاریخ شمسی با فونت وزیرمتن در ویجت ساعت و تقویم نمایش داده می‌شود.
               </p>
             ) : null}
@@ -294,6 +312,8 @@ export default function SettingsApp() {
             ) : null}
           </SettingsSection>
 
+          <CryptoSettingsPanel value={data.crypto} />
+
           <SettingsSection title="Pomodoro (minutes)">
             <div className="grid grid-cols-3 gap-2">
               {(
@@ -349,6 +369,53 @@ export default function SettingsApp() {
                 onCheckedChange={(checked) => void setAutostart(checked)}
                 aria-label="Start with Windows"
               />
+            </SettingsRow>
+            <SettingsRow label="Reset to defaults">
+              <Dialog open={resetOpen} onOpenChange={setResetOpen}>
+                <DialogTrigger asChild>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    disabled={resetting}
+                  >
+                    Reset
+                  </Button>
+                </DialogTrigger>
+                <DialogContent showCloseButton={false}>
+                  <DialogHeader>
+                    <DialogTitle>Reset to defaults?</DialogTitle>
+                    <DialogDescription>
+                      Widget layout, crypto list, and other prefs will be
+                      restored to first-run defaults.
+                    </DialogDescription>
+                  </DialogHeader>
+                  <DialogFooter>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      disabled={resetting}
+                      onClick={() => setResetOpen(false)}
+                    >
+                      Cancel
+                    </Button>
+                    <Button
+                      type="button"
+                      size="sm"
+                      disabled={resetting}
+                      onClick={() => {
+                        setResetting(true);
+                        void resetToDefaults()
+                          .then(() => setResetOpen(false))
+                          .finally(() => setResetting(false));
+                      }}
+                    >
+                      {resetting ? "Resetting…" : "Reset"}
+                    </Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
             </SettingsRow>
             <SettingsRow label="Quit">
               <Button

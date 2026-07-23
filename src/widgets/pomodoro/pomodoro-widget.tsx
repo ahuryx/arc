@@ -129,7 +129,7 @@ export function PomodoroWidget() {
       </ToggleGroup>
 
       <div className="flex flex-col items-center gap-2.5">
-        <div className="num text-[44px] font-extralight leading-none tracking-tight text-foreground">
+        <div className="text-[44px] font-extralight leading-none tracking-tight text-foreground tabular-nums">
           {formatCountdown(state.remaining)}
         </div>
         <div className="flex gap-1.5">

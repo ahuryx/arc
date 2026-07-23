@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Plus, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
 import { useAppState } from "@/core/useAppState";
 import { updateNoteTabBody, updateNotesData } from "@/core/workspaceHost";
 import type { NotesData } from "@/core/types";
@@ -86,16 +87,22 @@ export function NotesWidget() {
               tab.id === notes.active
                 ? tabLabel(value, index)
                 : tabLabel(tab.body, index);
+            const activeTab = tab.id === notes.active;
             return (
               <div
                 key={tab.id}
-                className={cn("tab", tab.id === notes.active && "active")}
+                className={cn(
+                  "flex shrink-0 items-center gap-1 whitespace-nowrap rounded-md px-2 py-1 text-[11px] transition-colors",
+                  activeTab
+                    ? "bg-accent text-accent-foreground"
+                    : "text-muted-foreground hover:text-foreground",
+                )}
               >
                 <button
                   type="button"
                   className="max-w-[7.5rem] truncate"
                   aria-label={`Open ${label}`}
-                  aria-pressed={tab.id === notes.active}
+                  aria-pressed={activeTab}
                   onClick={() => selectTab(tab.id)}
                   title={label}
                 >
@@ -104,7 +111,7 @@ export function NotesWidget() {
                 {notes.tabs.length > 1 ? (
                   <button
                     type="button"
-                    className="tab-close"
+                    className="grid size-3.5 place-items-center rounded-sm text-muted-foreground hover:bg-accent hover:text-foreground"
                     aria-label={`Close ${label}`}
                     onClick={() => removeTab(tab.id)}
                   >
@@ -126,8 +133,8 @@ export function NotesWidget() {
           <Plus />
         </Button>
       </div>
-      <textarea
-        className="editor"
+      <Textarea
+        className="min-h-0 flex-1 resize-none rounded-md border-border bg-muted px-2.5 py-2.5 text-[12.5px] leading-relaxed whitespace-pre-wrap break-words focus-visible:border-foreground/30 focus-visible:ring-0"
         placeholder="Write a note…"
         value={value}
         onChange={(event) => setValue(event.target.value)}

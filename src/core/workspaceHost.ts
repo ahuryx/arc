@@ -8,6 +8,7 @@ import { WIDGET_CATALOG } from "./widgetCatalog";
 import type {
   ArrangeSide,
   CalendarMode,
+  CryptoData,
   NotesData,
   ThemeId,
   TimeFormat,
@@ -17,6 +18,7 @@ import type {
 import {
   getWidgetData,
   getWorkspace,
+  resetSettingsToDefaults,
   updateWidgetData,
   updateWorkspace,
 } from "./settingsStore";
@@ -36,6 +38,7 @@ import {
 import { clamp } from "@/lib/utils";
 import { SETTINGS_LABEL } from "./constants";
 import { resolveTheme } from "./theme";
+import { defaultCryptoData } from "@/feeds/crypto/defaults";
 
 /** Read-only workspace snapshot for tray / UI. */
 export function getWorkspaceSnapshot(): WorkspaceSettings {
@@ -140,6 +143,31 @@ export async function setCalendarMode(mode: CalendarMode): Promise<void> {
 
 export async function setTimeFormat(timeFormat: TimeFormat): Promise<void> {
   await updateWidgetData({ clock: { timeFormat } });
+}
+
+export async function setCryptoSettings(crypto: CryptoData): Promise<void> {
+  const rows = crypto.rows
+    .filter((row) => row.symbol.trim().length > 0)
+    .map((row) => ({
+      id: row.id,
+      symbol: row.symbol.trim().toUpperCase(),
+      quote: row.quote === "toman" ? ("toman" as const) : ("usd" as const),
+    }));
+
+  await updateWidgetData({
+    crypto: {
+      rows: rows.length > 0 ? rows : defaultCryptoData().rows,
+    },
+  });
+}
+
+/** Factory reset — first-run layout + default widget data. */
+export async function resetToDefaults(): Promise<void> {
+  await resetSettingsToDefaults();
+  await applyFirstRunDefaults();
+  await syncWindowsFromWorkspace();
+  await arrangeVisible();
+  await applyThemeChrome(resolveTheme(getWorkspace().theme));
 }
 
 export async function setTheme(theme: ThemeId): Promise<void> {

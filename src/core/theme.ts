@@ -2,8 +2,7 @@ import type { ThemeId } from "./types";
 
 export type ResolvedTheme = "dark" | "light";
 
-const THEME_ATTR = "data-theme";
-
+/** Apply resolved theme to document (shadcn `.dark` class). */
 export function getSystemTheme(): ResolvedTheme {
   return window.matchMedia("(prefers-color-scheme: dark)").matches
     ? "dark"
@@ -17,7 +16,7 @@ export function resolveTheme(theme: ThemeId): ResolvedTheme {
 /** Apply resolved theme to document (CSS tokens). */
 export function applyTheme(theme: ThemeId): ResolvedTheme {
   const resolved = resolveTheme(theme);
-  document.documentElement.setAttribute(THEME_ATTR, resolved);
+  document.documentElement.classList.toggle("dark", resolved === "dark");
   return resolved;
 }
 

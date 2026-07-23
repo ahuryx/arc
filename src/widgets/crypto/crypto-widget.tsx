@@ -1,12 +1,15 @@
 import { useMemo } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useAppState } from "@/core/useAppState";
 import { useLiveFeed } from "@/hooks/use-live-feed";
 import {
   formatPrice,
   getCryptoFeed,
   type CoinTicker,
-} from "@/feeds/cryptoFeed";
+} from "@/feeds/crypto/cryptoFeed";
+import { defaultCryptoData } from "@/feeds/crypto/defaults";
 import { cn } from "@/lib/utils";
+import { CryptoIcon } from "./crypto-icon";
 
 function CryptoSkeleton() {
   return (
@@ -34,30 +37,27 @@ function CoinRow({ coin }: { coin: CoinTicker }) {
 
   return (
     <div className="flex items-center gap-2.5 rounded-lg px-2 py-2 transition-colors hover:bg-accent">
-      <img
-        src={coin.icon}
-        alt=""
-        className="size-7 shrink-0 rounded-full"
-        onError={(event) => {
-          event.currentTarget.style.display = "none";
-        }}
-      />
+      <CryptoIcon symbol={coin.symbol} />
       <div className="min-w-0 flex-1">
-        <div className="text-[13px] font-semibold leading-tight">{coin.symbol}</div>
-        <div className="truncate text-[10px] text-muted-foreground">{coin.name}</div>
+        <div className="text-[13px] font-semibold leading-tight">
+          {coin.symbol}
+        </div>
+        <div className="truncate text-[10px] text-muted-foreground">
+          {coin.name}
+        </div>
       </div>
       <div className="ms-auto flex flex-col items-end text-right">
-        <div className="num text-[13px] font-semibold">
+        <div className="text-[13px] font-semibold tabular-nums">
           {formatPrice(coin.price, coin.quote)}
         </div>
         <div
           className={cn(
-            "num text-[11px] font-semibold",
+            "text-[11px] font-semibold tabular-nums",
             coin.change == null
               ? "text-muted-foreground"
               : up
-                ? "t-up"
-                : "t-down",
+                ? "text-up"
+                : "text-down",
           )}
         >
           {coin.change == null
@@ -70,7 +70,13 @@ function CoinRow({ coin }: { coin: CoinTicker }) {
 }
 
 export function CryptoWidget() {
-  const feed = useMemo(() => getCryptoFeed(), []);
+  const { data } = useAppState();
+  const crypto = data.crypto ?? defaultCryptoData();
+  const configKey = JSON.stringify({ rows: crypto.rows });
+  const feed = useMemo(
+    () => getCryptoFeed(JSON.parse(configKey) as typeof crypto),
+    [configKey],
+  );
   const snapshot = useLiveFeed(feed);
 
   if (snapshot.status === "connecting" && !snapshot.data.length) {
@@ -79,17 +85,21 @@ export function CryptoWidget() {
 
   if (!snapshot.data.length) {
     return (
-      <div className="px-3 py-3 text-[12px] text-down" role="alert">
-        {snapshot.error ?? "Prices unavailable"}
+      <div className="flex h-full flex-col justify-center gap-2 px-3 py-3">
+        <div className="text-[12px] text-destructive" role="alert">
+          {snapshot.error ?? "Prices unavailable"}
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="flex flex-col gap-0.5 px-2 py-1.5">
-      {snapshot.data.map((coin) => (
-        <CoinRow key={coin.id} coin={coin} />
-      ))}
+    <div className="flex h-full flex-col overflow-hidden">
+      <div className="flex min-h-0 flex-1 flex-col gap-0.5 overflow-y-auto px-2 py-1.5">
+        {snapshot.data.map((coin) => (
+          <CoinRow key={coin.id} coin={coin} />
+        ))}
+      </div>
     </div>
   );
 }

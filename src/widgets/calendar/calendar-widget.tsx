@@ -47,7 +47,7 @@ export function CalendarWidget() {
         <div
           className={cn(
             "min-w-0 flex-1 truncate text-center text-[13px] font-semibold text-foreground",
-            mode === "jalali" && "fa",
+            mode === "jalali" && "font-fa",
           )}
           dir={mode === "jalali" ? "rtl" : "ltr"}
         >
@@ -86,11 +86,11 @@ export function CalendarWidget() {
             <div
               key={`${day.getTime()}-${index}`}
               className={cn(
-                "num mx-auto flex size-7 items-center justify-center rounded-full text-[12px]",
+                "mx-auto flex size-7 items-center justify-center rounded-full text-[12px] tabular-nums",
                 isToday && "bg-primary text-primary-foreground",
                 !isToday && weekend && "text-down",
                 !isToday && !weekend && "text-foreground/85",
-                mode === "jalali" && "fa",
+                mode === "jalali" && "font-fa",
               )}
             >
               {dayNumber(day, mode)}

@@ -3,7 +3,6 @@ import { Settings } from "lucide-react";
 import { useAppState } from "@/core/useAppState";
 import { openSettings } from "@/core/workspaceHost";
 import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
 
 interface WidgetShellProps {
   title: string;
@@ -14,13 +13,15 @@ export function WidgetShell({ title, children }: WidgetShellProps) {
   const { workspace } = useAppState();
 
   return (
-    <div className="card">
+    <div className="relative flex size-full flex-col overflow-hidden rounded-lg border border-border bg-card text-card-foreground shadow-sm">
       <header
-        className={cn("wh")}
+        className="flex h-8 shrink-0 items-center justify-between border-b border-border px-2.5 pe-1.5"
         data-tauri-drag-region={workspace.locked ? undefined : true}
       >
-        <span className="wh-title">{title}</span>
-        <div className="wh-actions" data-no-drag>
+        <span className="truncate text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+          {title}
+        </span>
+        <div className="flex items-center gap-0.5" data-no-drag>
           <Button
             type="button"
             variant="ghost"
@@ -34,7 +35,7 @@ export function WidgetShell({ title, children }: WidgetShellProps) {
           </Button>
         </div>
       </header>
-      <div className="wb" data-no-drag>
+      <div className="min-h-0 flex-1 overflow-hidden" data-no-drag>
         {children}
       </div>
     </div>
