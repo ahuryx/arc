@@ -96,12 +96,13 @@ export function PomodoroWidget() {
     return () => window.clearInterval(id);
   }, [state.running, work, short, long]);
 
+  // Apply duration prefs / phase length while idle. Do not depend on `running`:
+  // including it re-fires on Pause and resets the countdown via syncDuration.
   useEffect(() => {
-    if (state.running) return;
     const mins =
       state.phase === "work" ? work : state.phase === "short" ? short : long;
     dispatch({ type: "syncDuration", seconds: mins * 60 });
-  }, [work, short, long, state.phase, state.running]);
+  }, [work, short, long, state.phase]);
 
   return (
     <div className="flex h-full flex-col items-center justify-between gap-3 px-4 py-4">

@@ -5,8 +5,11 @@ Tray-hosted desktop widgets — clock, calendar, weather, crypto, notes, and pom
 Cross-platform desktop app for **Windows**, **macOS**, and **Linux**, built with [Tauri 2](https://tauri.app/), [React](https://react.dev/), and [TypeScript](https://www.typescriptlang.org/).
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![Status: Beta](https://img.shields.io/badge/status-beta-yellow.svg)](CHANGELOG.md)
 [![Contributor Covenant](https://img.shields.io/badge/Contributor%20Covenant-2.1-4baaaa.svg)](CODE_OF_CONDUCT.md)
 [![Build & Release](https://github.com/ahuryx/arc/actions/workflows/release.yml/badge.svg)](https://github.com/ahuryx/arc/actions/workflows/release.yml)
+
+> **Beta** — Arc is pre-v1. Features work, but bugs and breaking changes are expected.
 
 ## Features
 

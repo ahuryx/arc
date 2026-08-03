@@ -15,16 +15,16 @@ export default defineConfig(async () => ({
   },
   clearScreen: false,
   server: {
-    port: 3001,
+    port: 3010,
     strictPort: true,
     // Bind IPv4 explicitly — on Windows, `false`/`localhost` often listens on
-    // [::1] only, so Tauri's http://localhost:3001 check never connects.
+    // [::1] only, so Tauri's http://localhost:3010 check never connects.
     host: host || "127.0.0.1",
     hmr: host
       ? {
           protocol: "ws",
           host,
-          port: 3002,
+          port: 3011,
         }
       : undefined,
     watch: {

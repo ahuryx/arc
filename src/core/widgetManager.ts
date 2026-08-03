@@ -4,6 +4,7 @@ import {
 } from "@tauri-apps/api/webviewWindow";
 import { availableMonitors, primaryMonitor } from "@tauri-apps/api/window";
 import { LogicalSize, PhysicalPosition } from "@tauri-apps/api/dpi";
+import { emit } from "@tauri-apps/api/event";
 import {
   WIDGET_CATALOG,
   WIDGET_META_BY_ID,
@@ -25,6 +26,10 @@ import {
   WIDGET_CHROME_HEIGHT,
   WIDGET_WIDTH,
 } from "./constants";
+import {
+  SETTINGS_FOCUS_TAB_EVENT,
+  type SettingsTabId,
+} from "./settingsNav";
 
 const WINDOW_CREATE_TIMEOUT_MS = 10_000;
 
@@ -47,12 +52,17 @@ function currentChromeTheme(): ResolvedTheme {
   return resolveTheme(getWorkspace().theme);
 }
 
-function appUrl(role?: string): string {
+function appUrl(role?: string, params?: Record<string, string>): string {
   const url = new URL(window.location.href);
   url.search = "";
   url.hash = "";
   if (role) {
     url.searchParams.set("role", role);
+  }
+  if (params) {
+    for (const [key, value] of Object.entries(params)) {
+      url.searchParams.set(key, value);
+    }
   }
   return url.toString();
 }
@@ -115,28 +125,35 @@ export async function ensureAllWindows(): Promise<void> {
   }
 }
 
-export async function openSettingsWindow(): Promise<void> {
+export async function openSettingsWindow(
+  tab?: SettingsTabId,
+): Promise<void> {
+  const focusTab = tab ?? "general";
   const existing = await WebviewWindow.getByLabel(SETTINGS_LABEL);
   if (existing) {
+    await emit(SETTINGS_FOCUS_TAB_EVENT, { tab: focusTab });
+    await existing.center();
     await existing.show();
     await existing.setFocus();
     return;
   }
 
   const win = new WebviewWindow(SETTINGS_LABEL, {
-    url: appUrl("settings"),
+    url: appUrl("settings", { tab: focusTab }),
     title: "Settings",
     width: SETTINGS_WIDTH,
     height: SETTINGS_HEIGHT,
     resizable: false,
     skipTaskbar: true,
-    visible: true,
+    visible: false,
     alwaysOnTop: true,
     focus: true,
     ...windowOptions(currentChromeTheme()),
   });
 
   await waitForWebviewCreated(win, SETTINGS_LABEL);
+  await win.center();
+  await win.show();
 }
 
 export async function setVisible(

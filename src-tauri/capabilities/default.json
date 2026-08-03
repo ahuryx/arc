@@ -24,6 +24,7 @@
     "core:window:allow-set-focus",
     "core:window:allow-set-shadow",
     "core:window:allow-start-dragging",
+    "core:window:allow-center",
     "core:window:allow-current-monitor",
     "core:window:allow-available-monitors",
     "core:window:allow-outer-position",
@@ -37,6 +38,7 @@
     "autostart:allow-enable",
     "autostart:allow-disable",
     "autostart:allow-is-enabled",
-    "process:allow-exit"
+    "process:allow-exit",
+    "opener:default"
   ]
 }

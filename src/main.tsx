@@ -67,6 +67,13 @@ function mount(
 }
 
 const role = windowRole();
+
+if (role === "widget" || role === "settings") {
+  document.addEventListener("contextmenu", (event) => {
+    event.preventDefault();
+  });
+}
+
 if (role === "controller") {
   void import("./bootstrap").catch(showBootError);
 } else if (role === "settings") {

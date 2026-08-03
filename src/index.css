@@ -202,18 +202,152 @@
     cursor: default;
   }
 
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: color-mix(in oklab, var(--foreground) 20%, transparent)
+      transparent;
+  }
+
   ::-webkit-scrollbar {
-    width: 6px;
+    width: 5px;
+    height: 4px;
   }
 
   ::-webkit-scrollbar-thumb {
-    @apply rounded-md bg-foreground/20;
+    @apply rounded-full bg-foreground/20;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-foreground/35;
   }
 
   ::-webkit-scrollbar-track {
     background: transparent;
   }
+
+  ::-webkit-scrollbar-corner {
+    background: transparent;
+  }
 }
+
+.thin-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in oklab, var(--foreground) 18%, transparent)
+    transparent;
+}
+
+.thin-scroll::-webkit-scrollbar {
+  width: 4px;
+  height: 3px;
+}
+
+.thin-scroll::-webkit-scrollbar-thumb {
+  @apply rounded-full bg-foreground/18;
+}
+
+.thin-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.note-markdown {
+  word-break: break-word;
+}
+
+.note-markdown .ProseMirror {
+  min-height: 100%;
+  outline: none;
+}
+
+.note-markdown .ProseMirror > :first-child {
+  margin-top: 0;
+}
+
+.note-markdown .ProseMirror > :last-child {
+  margin-bottom: 0;
+}
+
+.note-markdown .ProseMirror p.is-editor-empty:first-child::before {
+  @apply pointer-events-none float-left h-0 text-muted-foreground;
+  content: attr(data-placeholder);
+}
+
+.note-markdown :where(h1, h2, h3) {
+  @apply font-semibold text-foreground;
+  margin: 0.5em 0 0.25em;
+  line-height: 1.25;
+}
+
+.note-markdown h1 {
+  font-size: 1.45em;
+}
+
+.note-markdown h2 {
+  font-size: 1.22em;
+}
+
+.note-markdown h3 {
+  font-size: 1.08em;
+}
+
+.note-markdown :where(p, ul, ol, blockquote, pre) {
+  margin: 0.35em 0;
+}
+
+.note-markdown :where(ul, ol) {
+  padding-inline-start: 1.25em;
+}
+
+.note-markdown ul {
+  list-style-type: disc;
+}
+
+.note-markdown ol {
+  list-style-type: decimal;
+}
+
+.note-markdown li {
+  display: list-item;
+}
+
+.note-markdown li + li {
+  margin-top: 0.12em;
+}
+
+.note-markdown li p {
+  margin: 0;
+}
+
+.note-markdown a,
+.note-markdown .note-link {
+  @apply underline underline-offset-2;
+}
+
+.note-markdown code {
+  @apply rounded-sm bg-foreground/10 px-1 py-px text-[0.92em];
+}
+
+.note-markdown pre {
+  @apply overflow-x-auto rounded-md bg-foreground/8 px-2 py-1.5;
+}
+
+.note-markdown pre code {
+  @apply bg-transparent p-0;
+}
+
+.note-markdown blockquote {
+  @apply border-s-2 border-foreground/25 ps-2 text-muted-foreground;
+  margin-inline-start: 0;
+}
+
+.note-markdown hr {
+  @apply my-2 border-border;
+}
+
+.note-markdown strong {
+  @apply font-semibold;
+}
+
+
 
 /* Tauri window drag regions */
 [data-tauri-drag-region] {

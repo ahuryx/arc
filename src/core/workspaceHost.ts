@@ -37,6 +37,7 @@ import {
 } from "./widgetManager";
 import { clamp } from "@/lib/utils";
 import { SETTINGS_LABEL } from "./constants";
+import type { SettingsTabId } from "./settingsNav";
 import { resolveTheme } from "./theme";
 import { defaultCryptoData } from "@/feeds/crypto/defaults";
 
@@ -213,8 +214,8 @@ export async function flushWidgetPosition(): Promise<void> {
   await flushWindowPosition();
 }
 
-export async function openSettings(): Promise<void> {
-  await openSettingsWindow();
+export async function openSettings(tab?: SettingsTabId): Promise<void> {
+  await openSettingsWindow(tab);
 }
 
 export async function closeSettings(): Promise<void> {

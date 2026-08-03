@@ -1,7 +1,13 @@
 import { useEffect, useState } from "react";
+import type { Editor } from "@tiptap/react";
+import { EditorContent, useEditor } from "@tiptap/react";
+import StarterKit from "@tiptap/starter-kit";
+import Link from "@tiptap/extension-link";
+import Placeholder from "@tiptap/extension-placeholder";
+import { Markdown } from "tiptap-markdown";
+import { openUrl } from "@tauri-apps/plugin-opener";
 import { Plus, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
 import { useAppState } from "@/core/useAppState";
 import { updateNoteTabBody, updateNotesData } from "@/core/workspaceHost";
 import type { NotesData } from "@/core/types";
@@ -18,14 +24,27 @@ function withDirtyBody(
   );
 }
 
-/** First non-empty line of note, else Note N. */
+function editorMarkdown(editor: Editor): string {
+  return (
+    editor.storage as unknown as { markdown: { getMarkdown: () => string } }
+  ).markdown.getMarkdown();
+}
+
+/** First non-empty line of note (markdown markers stripped), else Note N. */
 function tabLabel(body: string, index: number): string {
   const line = body
     .split(/\r?\n/)
     .map((part) => part.trim())
     .find((part) => part.length > 0);
   if (!line) return `Note ${index + 1}`;
-  return line.length > 18 ? `${line.slice(0, 18)}…` : line;
+  const cleaned = line
+    .replace(/^#{1,6}\s+/, "")
+    .replace(/^[-*+]\s+/, "")
+    .replace(/^\d+\.\s+/, "")
+    .replace(/[*_`~]/g, "")
+    .trim();
+  const label = cleaned || line;
+  return label.length > 18 ? `${label.slice(0, 18)}…` : label;
 }
 
 export function NotesWidget() {
@@ -35,9 +54,61 @@ export function NotesWidget() {
     notes.tabs.find((tab) => tab.id === notes.active) ?? notes.tabs[0];
   const [value, setValue] = useState(active?.body ?? "");
 
+  const editor = useEditor({
+    immediatelyRender: false,
+    extensions: [
+      StarterKit.configure({
+        heading: { levels: [1, 2, 3] },
+      }),
+      Link.configure({
+        openOnClick: false,
+        autolink: true,
+        HTMLAttributes: {
+          class: "note-link",
+        },
+      }),
+      Placeholder.configure({
+        placeholder: "Write a note…",
+      }),
+      Markdown.configure({
+        html: false,
+        transformPastedText: true,
+        transformCopiedText: true,
+      }),
+    ],
+    content: active?.body ?? "",
+    editorProps: {
+      attributes: {
+        class: "note-editor outline-none min-h-full",
+        dir: "auto",
+      },
+      handleClick(_view, _pos, event) {
+        const target = event.target as HTMLElement | null;
+        const anchor = target?.closest("a");
+        const href = anchor?.getAttribute("href");
+        if (href) {
+          event.preventDefault();
+          void openUrl(href);
+          return true;
+        }
+        return false;
+      },
+    },
+    onUpdate: ({ editor: next }) => {
+      setValue(editorMarkdown(next));
+    },
+  });
+
   useEffect(() => {
-    setValue(active?.body ?? "");
-  }, [active?.id, active?.body]);
+    if (!editor || editor.isDestroyed) return;
+    const md = active?.body ?? "";
+    if (md === editorMarkdown(editor)) {
+      setValue(md);
+      return;
+    }
+    editor.commands.setContent(md);
+    setValue(md);
+  }, [active?.id, active?.body, editor]);
 
   useEffect(() => {
     if (!active || value === active.body) return;
@@ -81,7 +152,7 @@ export function NotesWidget() {
   return (
     <div className="flex h-full flex-col gap-2 px-2.5 pb-2.5 pt-2">
       <div className="flex items-center gap-1">
-        <div className="flex min-w-0 flex-1 gap-1 overflow-x-auto">
+        <div className="thin-scroll flex min-w-0 flex-1 gap-1 overflow-x-auto">
           {notes.tabs.map((tab, index) => {
             const label =
               tab.id === notes.active
@@ -133,13 +204,12 @@ export function NotesWidget() {
           <Plus />
         </Button>
       </div>
-      <Textarea
-        className="min-h-0 flex-1 resize-none rounded-md border-border bg-muted px-2.5 py-2.5 text-[12.5px] leading-relaxed whitespace-pre-wrap break-words focus-visible:border-foreground/30 focus-visible:ring-0"
-        placeholder="Write a note…"
-        value={value}
-        onChange={(event) => setValue(event.target.value)}
-        dir="auto"
-      />
+      <div
+        className="thin-scroll note-markdown min-h-0 flex-1 overflow-auto rounded-md border border-border bg-muted px-2.5 py-2.5 text-[12.5px] leading-relaxed"
+        onClick={() => editor?.chain().focus().run()}
+      >
+        <EditorContent editor={editor} />
+      </div>
     </div>
   );
 }

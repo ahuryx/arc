@@ -1,15 +1,17 @@
 import type { ReactNode } from "react";
 import { Settings } from "lucide-react";
 import { useAppState } from "@/core/useAppState";
+import type { WidgetId } from "@/core/types";
 import { openSettings } from "@/core/workspaceHost";
 import { Button } from "@/components/ui/button";
 
 interface WidgetShellProps {
   title: string;
+  widgetId: WidgetId;
   children: ReactNode;
 }
 
-export function WidgetShell({ title, children }: WidgetShellProps) {
+export function WidgetShell({ title, widgetId, children }: WidgetShellProps) {
   const { workspace } = useAppState();
 
   return (
@@ -29,7 +31,7 @@ export function WidgetShell({ title, children }: WidgetShellProps) {
             className="size-6 text-muted-foreground hover:text-foreground"
             title="Settings"
             aria-label="Settings"
-            onClick={() => void openSettings()}
+            onClick={() => void openSettings(widgetId)}
           >
             <Settings className="size-3" />
           </Button>

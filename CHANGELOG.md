@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.0-beta.0] - 2026-08-03
+
+Pre-release (beta). Not a stable v1 — expect bugs and breaking changes.
+
+### Changed
+
+- Notes widget uses a live rich-text editor (TipTap); markdown formats as you type — no Edit/Preview toggle
+- About panel shows version and Beta label
+
 ## [0.1.0] - 2026-07-23
 
 ### Added
@@ -16,5 +25,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Workspace settings: theme, arrange, keep-on-top, lock, autostart
 - Optional Jalali calendar / Persian locale support
 
-[Unreleased]: https://github.com/ahuryx/arc/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/ahuryx/arc/compare/v0.2.0-beta.0...HEAD
+[0.2.0-beta.0]: https://github.com/ahuryx/arc/compare/v0.1.0...v0.2.0-beta.0
 [0.1.0]: https://github.com/ahuryx/arc/releases/tag/v0.1.0

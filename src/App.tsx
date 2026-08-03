@@ -37,7 +37,7 @@ function App() {
   const WidgetComponent = widget.component;
 
   return (
-    <WidgetShell title={widget.title}>
+    <WidgetShell title={widget.title} widgetId={widget.id}>
       <WidgetComponent />
     </WidgetShell>
   );

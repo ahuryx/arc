@@ -6,5 +6,5 @@ export const ARRANGE_MARGIN = 12;
 export const STORE_PATH = "settings.json";
 export const CONTROLLER_LABEL = "controller";
 export const SETTINGS_LABEL = "settings";
-export const SETTINGS_WIDTH = 460;
+export const SETTINGS_WIDTH = 520;
 export const SETTINGS_HEIGHT = 640;
