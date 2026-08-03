@@ -2,97 +2,164 @@ name: Build & Release
 
 on:
   push:
-    branches: [main, master]
-    tags: ['v*']
+    branches:
+      - '**'
+    tags:
+      - 'v*'
   pull_request:
   workflow_dispatch:
 
-# Cancel superseded runs on the same ref.
-concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+permissions:
+  contents: read
+
+env:
+  NODE_VERSION: 22
+  PNPM_VERSION: 9
 
 jobs:
-  # Lightweight checks on every push / PR — no release artifacts.
   check:
+    name: Check frontend
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
       - uses: pnpm/action-setup@v4
         with:
-          version: 9
+          version: ${{ env.PNPM_VERSION }}
 
       - uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version: ${{ env.NODE_VERSION }}
           cache: pnpm
-
-      - uses: dtolnay/rust-toolchain@stable
-
-      - uses: Swatinem/rust-cache@v2
-        with:
-          workspaces: src-tauri -> target
-
-      - name: Install Linux system deps
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y \
-            libwebkit2gtk-4.1-dev \
-            libayatana-appindicator3-dev \
-            librsvg2-dev \
-            build-essential \
-            curl \
-            wget \
-            file
 
       - run: pnpm install --frozen-lockfile
 
-      - name: Typecheck & build frontend
+      - name: Typecheck and build frontend
         run: pnpm build
 
-  # Full per-platform builds. Produces release artifacts only on tag pushes.
-  build:
+  prepare-release:
+    name: Create draft release
     needs: check
-    if:
-      github.event_name == 'pull_request' || startsWith(github.ref,
-      'refs/tags/v')
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    outputs:
+      release_id: ${{ steps.release.outputs.release_id }}
+      release_draft: ${{ steps.release.outputs.release_draft }}
+      prerelease: ${{ steps.metadata.outputs.prerelease }}
+      tag: ${{ steps.metadata.outputs.tag }}
+      version: ${{ steps.metadata.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Determine release metadata
+        id: metadata
+        shell: bash
+        run: |
+          package_version="$(node -p "require('./package.json').version")"
+          tauri_version="$(node -p "require('./src-tauri/tauri.conf.json').version")"
+          cargo_version="$(awk -F ' *= *' '/^version *=/ {gsub(/"/, "", $2); print $2; exit}' src-tauri/Cargo.toml)"
+
+          if [[ "$package_version" != "$tauri_version" || "$package_version" != "$cargo_version" ]]; then
+            echo "Version mismatch: package.json=$package_version, tauri.conf.json=$tauri_version, Cargo.toml=$cargo_version" >&2
+            exit 1
+          fi
+
+          expected_tag="v${package_version}"
+          if [[ "$GITHUB_REF_NAME" != "$expected_tag" ]]; then
+            echo "Tag/version mismatch: expected $expected_tag, received $GITHUB_REF_NAME" >&2
+            exit 1
+          fi
+
+          prerelease=false
+          if [[ "$package_version" == *-* ]]; then
+            prerelease=true
+          fi
+
+          echo "version=$package_version" >> "$GITHUB_OUTPUT"
+          echo "tag=$GITHUB_REF_NAME" >> "$GITHUB_OUTPUT"
+          echo "prerelease=$prerelease" >> "$GITHUB_OUTPUT"
+
+      - name: Create or reuse draft release
+        id: release
+        shell: bash
+        env:
+          GH_REPO: ${{ github.repository }}
+          GH_TOKEN: ${{ github.token }}
+          PRERELEASE: ${{ steps.metadata.outputs.prerelease }}
+          TAG: ${{ steps.metadata.outputs.tag }}
+          VERSION: ${{ steps.metadata.outputs.version }}
+        run: |
+          if ! gh release view "$TAG" > /dev/null 2>&1; then
+            release_args=(
+              --verify-tag
+              --title "Arc $VERSION"
+              --generate-notes
+              --draft
+            )
+
+            if [[ "$PRERELEASE" == "true" ]]; then
+              release_args+=(--prerelease)
+            fi
+
+            gh release create "$TAG" "${release_args[@]}"
+          fi
+
+          release_id="$(gh api "repos/${GITHUB_REPOSITORY}/releases/tags/${TAG}" --jq '.id')"
+          release_draft="$(gh api "repos/${GITHUB_REPOSITORY}/releases/tags/${TAG}" --jq '.draft')"
+          echo "release_id=$release_id" >> "$GITHUB_OUTPUT"
+          echo "release_draft=$release_draft" >> "$GITHUB_OUTPUT"
+
+  build:
+    name: Build ${{ matrix.name }}
+    needs: prepare-release
+    permissions:
+      contents: write
     strategy:
       fail-fast: false
       matrix:
         include:
-          - platform: ubuntu-22.04
-            args: ''
-          - platform: windows-latest
-            args: ''
-          - platform: macos-latest
-            args: '--target aarch64-apple-darwin'
-          - platform: macos-latest
-            args: '--target x86_64-apple-darwin'
+          - name: Linux x64
+            platform: ubuntu-22.04
+            tauri_args: ''
+          - name: Windows x64
+            platform: windows-latest
+            tauri_args: ''
+          - name: macOS Apple Silicon
+            platform: macos-latest
+            tauri_args: '--target aarch64-apple-darwin'
+          - name: macOS Intel
+            platform: macos-latest
+            tauri_args: '--target x86_64-apple-darwin'
     runs-on: ${{ matrix.platform }}
     steps:
       - uses: actions/checkout@v4
 
       - uses: pnpm/action-setup@v4
         with:
-          version: 9
+          version: ${{ env.PNPM_VERSION }}
 
       - uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version: ${{ env.NODE_VERSION }}
           cache: pnpm
 
       - uses: dtolnay/rust-toolchain@stable
         with:
           targets:
-            ${{ matrix.platform == 'macos-latest' &&
+            ${{ startsWith(matrix.platform, 'macos-') &&
             'aarch64-apple-darwin,x86_64-apple-darwin' || '' }}
 
       - uses: Swatinem/rust-cache@v2
         with:
           workspaces: src-tauri -> target
 
-      - name: Install Linux system deps
+      - name: Install Linux system dependencies
         if: matrix.platform == 'ubuntu-22.04'
         run: |
           sudo apt-get update
@@ -103,21 +170,61 @@ jobs:
             build-essential \
             curl \
             wget \
-            file
+            file \
+            libssl-dev \
+            libxdo-dev \
+            patchelf
 
       - run: pnpm install --frozen-lockfile
 
-      - uses: tauri-apps/tauri-action@v0
+      - name: Configure macOS signing fallback
+        if: startsWith(matrix.platform, 'macos-')
+        shell: bash
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+          APPLE_SIGNING_IDENTITY_SECRET: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+        run: |
+          if [[ -z "$APPLE_CERTIFICATE" ]]; then
+            echo "APPLE_SIGNING_IDENTITY=-" >> "$GITHUB_ENV"
+          elif [[ -n "$APPLE_SIGNING_IDENTITY_SECRET" ]]; then
+            echo "APPLE_SIGNING_IDENTITY=$APPLE_SIGNING_IDENTITY_SECRET" >> "$GITHUB_ENV"
+          fi
+
+      - name: Build installers and upload release assets
+        uses: tauri-apps/tauri-action@v1
+        env:
+          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          GITHUB_TOKEN: ${{ github.token }}
         with:
-          tagName:
-            ${{ startsWith(github.ref, 'refs/tags/v') && github.ref_name || ''
-            }}
-          releaseName: 'Arc ${{ github.ref_name }}'
-          releaseBody:
-            'Cross-platform desktop widgets. See the assets below for your
-            platform.'
-          releaseDraft: true
-          prerelease: false
-          args: ${{ matrix.args }}
+          releaseId: ${{ needs.prepare-release.outputs.release_id }}
+          tagName: ${{ needs.prepare-release.outputs.tag }}
+          releaseDraft: ${{ needs.prepare-release.outputs.release_draft }}
+          prerelease: ${{ needs.prepare-release.outputs.prerelease }}
+          args: ${{ matrix.tauri_args }}
+
+  publish-release:
+    name: Publish release
+    needs:
+      - prepare-release
+      - build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Publish the completed release
+        env:
+          GH_REPO: ${{ github.repository }}
+          GH_TOKEN: ${{ github.token }}
+          PRERELEASE: ${{ needs.prepare-release.outputs.prerelease }}
+          TAG: ${{ needs.prepare-release.outputs.tag }}
+        shell: bash
+        run: |
+          if [[ "$PRERELEASE" == "true" ]]; then
+            gh release edit "$TAG" --draft=false --prerelease
+          else
+            gh release edit "$TAG" --draft=false --prerelease=false --latest
+          fi
