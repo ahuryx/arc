@@ -81,6 +81,7 @@ export function NotesWidget() {
       attributes: {
         class: "note-editor outline-none min-h-full",
         dir: "auto",
+        spellcheck: "false",
       },
       handleClick(_view, _pos, event) {
         const target = event.target as HTMLElement | null;
