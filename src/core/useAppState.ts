@@ -1,13 +1,11 @@
-import { useEffect, useState } from "react";
-import { listen } from "@tauri-apps/api/event";
-import { applyTheme, watchSystemTheme } from "./theme";
-import { getState, loadSettings } from "./settingsStore";
-import {
-  APP_STATE_CHANGED_EVENT,
-  type AppState,
-  type WidgetData,
-  type WorkspaceSettings,
-} from "./types";
+import { listen } from '@tauri-apps/api/event';
+import { useEffect, useState } from 'react';
+
+import type { AppState, WidgetData, WorkspaceSettings } from './types';
+
+import { getState, loadSettings } from './settingsStore';
+import { applyTheme, watchSystemTheme } from './theme';
+import { APP_STATE_CHANGED_EVENT } from './types';
 
 export function useAppState(): {
   state: AppState;
@@ -16,7 +14,7 @@ export function useAppState(): {
   ready: boolean;
   refresh: () => Promise<void>;
 } {
-  const [state, setState] = useState<AppState>(getState());
+  const [state, setState] = useState<AppState>(() => getState());
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
@@ -24,9 +22,9 @@ export function useAppState(): {
   }, [state.workspace.theme]);
 
   useEffect(() => {
-    if (state.workspace.theme !== "system") return;
+    if (state.workspace.theme !== 'system') return;
     return watchSystemTheme(() => {
-      applyTheme("system");
+      applyTheme('system');
     });
   }, [state.workspace.theme]);
 
@@ -35,11 +33,11 @@ export function useAppState(): {
     let cancelled = false;
 
     const onLocal = (event: Event) => {
-      const detail = (event as CustomEvent<AppState>).detail;
-      if (!detail) return;
+      const { detail } = event as CustomEvent<AppState>;
       setState(detail);
       setReady(true);
     };
+
     window.addEventListener(APP_STATE_CHANGED_EVENT, onLocal);
 
     void loadSettings()

@@ -1,9 +1,12 @@
-import type { ReactNode } from "react";
-import { Settings } from "lucide-react";
-import { useAppState } from "@/core/useAppState";
-import type { WidgetId } from "@/core/types";
-import { openSettings } from "@/core/workspaceHost";
-import { Button } from "@/components/ui/button";
+import type { ReactNode } from 'react';
+
+import { Settings } from 'lucide-react';
+
+import type { WidgetId } from '@/core/types';
+
+import { Button } from '@/components/ui/button';
+import { useAppState } from '@/core/useAppState';
+import { openSettings } from '@/core/workspaceHost';
 
 interface WidgetShellProps {
   title: string;
@@ -20,7 +23,7 @@ export function WidgetShell({ title, widgetId, children }: WidgetShellProps) {
         className="flex h-8 shrink-0 items-center justify-between border-b border-border px-2.5 pe-1.5"
         data-tauri-drag-region={workspace.locked ? undefined : true}
       >
-        <span className="truncate text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+        <span className="truncate text-[11px] font-semibold tracking-[0.12em] text-muted-foreground uppercase">
           {title}
         </span>
         <div className="flex items-center gap-0.5" data-no-drag>

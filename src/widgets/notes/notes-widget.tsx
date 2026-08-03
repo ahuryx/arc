@@ -1,23 +1,26 @@
-import { useEffect, useState } from "react";
-import type { Editor } from "@tiptap/react";
-import { EditorContent, useEditor } from "@tiptap/react";
-import StarterKit from "@tiptap/starter-kit";
-import Link from "@tiptap/extension-link";
-import Placeholder from "@tiptap/extension-placeholder";
-import { Markdown } from "tiptap-markdown";
-import { openUrl } from "@tauri-apps/plugin-opener";
-import { Plus, X } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { useAppState } from "@/core/useAppState";
-import { updateNoteTabBody, updateNotesData } from "@/core/workspaceHost";
-import type { NotesData } from "@/core/types";
-import { cn } from "@/lib/utils";
+import type { Editor } from '@tiptap/react';
+
+import { openUrl } from '@tauri-apps/plugin-opener';
+import Link from '@tiptap/extension-link';
+import Placeholder from '@tiptap/extension-placeholder';
+import { EditorContent, useEditor } from '@tiptap/react';
+import StarterKit from '@tiptap/starter-kit';
+import { Plus, X } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { Markdown } from 'tiptap-markdown';
+
+import type { NotesData } from '@/core/types';
+
+import { Button } from '@/components/ui/button';
+import { useAppState } from '@/core/useAppState';
+import { updateNotesData, updateNoteTabBody } from '@/core/workspaceHost';
+import { cn } from '@/lib/utils';
 
 function withDirtyBody(
-  tabs: NotesData["tabs"],
+  tabs: NotesData['tabs'],
   tabId: string | undefined,
   body: string,
-): NotesData["tabs"] {
+): NotesData['tabs'] {
   if (!tabId) return tabs;
   return tabs.map((tab) =>
     tab.id === tabId && tab.body !== body ? { ...tab, body } : tab,
@@ -38,10 +41,10 @@ function tabLabel(body: string, index: number): string {
     .find((part) => part.length > 0);
   if (!line) return `Note ${index + 1}`;
   const cleaned = line
-    .replace(/^#{1,6}\s+/, "")
-    .replace(/^[-*+]\s+/, "")
-    .replace(/^\d+\.\s+/, "")
-    .replace(/[*_`~]/g, "")
+    .replace(/^#{1,6}\s+/, '')
+    .replace(/^[*+\x2d]\s+/, '')
+    .replace(/^\d+\.\s+/, '')
+    .replace(/[*_`~]/g, '')
     .trim();
   const label = cleaned || line;
   return label.length > 18 ? `${label.slice(0, 18)}…` : label;
@@ -49,10 +52,12 @@ function tabLabel(body: string, index: number): string {
 
 export function NotesWidget() {
   const { data } = useAppState();
-  const notes = data.notes;
+  const { notes } = data;
   const active =
     notes.tabs.find((tab) => tab.id === notes.active) ?? notes.tabs[0];
-  const [value, setValue] = useState(active?.body ?? "");
+  const activeId = active.id;
+  const activeBody = active.body;
+  const [value, setValue] = useState(activeBody);
 
   const editor = useEditor({
     immediatelyRender: false,
@@ -64,11 +69,11 @@ export function NotesWidget() {
         openOnClick: false,
         autolink: true,
         HTMLAttributes: {
-          class: "note-link",
+          class: 'note-link',
         },
       }),
       Placeholder.configure({
-        placeholder: "Write a note…",
+        placeholder: 'Write a note…',
       }),
       Markdown.configure({
         html: false,
@@ -76,22 +81,24 @@ export function NotesWidget() {
         transformCopiedText: true,
       }),
     ],
-    content: active?.body ?? "",
+    content: activeBody,
     editorProps: {
       attributes: {
-        class: "note-editor outline-none min-h-full",
-        dir: "auto",
-        spellcheck: "false",
+        class: 'note-editor outline-none min-h-full',
+        dir: 'auto',
+        spellcheck: 'false',
       },
       handleClick(_view, _pos, event) {
         const target = event.target as HTMLElement | null;
-        const anchor = target?.closest("a");
-        const href = anchor?.getAttribute("href");
+        const anchor = target?.closest('a');
+        const href = anchor?.getAttribute('href');
+
         if (href) {
           event.preventDefault();
           void openUrl(href);
           return true;
         }
+
         return false;
       },
     },
@@ -102,28 +109,29 @@ export function NotesWidget() {
 
   useEffect(() => {
     if (!editor || editor.isDestroyed) return;
-    const md = active?.body ?? "";
+    const md = activeBody;
+
     if (md === editorMarkdown(editor)) {
       setValue(md);
       return;
     }
+
     editor.commands.setContent(md);
     setValue(md);
-  }, [active?.id, active?.body, editor]);
+  }, [activeId, activeBody, editor]);
 
   useEffect(() => {
-    if (!active || value === active.body) return;
-    const tabId = active.id;
+    if (value === activeBody) return;
     const id = window.setTimeout(() => {
-      void updateNoteTabBody(tabId, value);
+      void updateNoteTabBody(activeId, value);
     }, 400);
     return () => window.clearTimeout(id);
-  }, [value, active?.id, active?.body]);
+  }, [activeId, activeBody, value]);
 
   function selectTab(nextId: string): void {
     if (nextId === notes.active) return;
     void updateNotesData({
-      tabs: withDirtyBody(notes.tabs, active?.id, value),
+      tabs: withDirtyBody(notes.tabs, activeId, value),
       active: nextId,
     });
   }
@@ -131,17 +139,14 @@ export function NotesWidget() {
   function addTab(): void {
     const id = `tab-${Date.now()}`;
     void updateNotesData({
-      tabs: [
-        ...withDirtyBody(notes.tabs, active?.id, value),
-        { id, body: "" },
-      ],
+      tabs: [...withDirtyBody(notes.tabs, activeId, value), { id, body: '' }],
       active: id,
     });
   }
 
   function removeTab(id: string): void {
     if (notes.tabs.length <= 1) return;
-    const tabs = withDirtyBody(notes.tabs, active?.id, value).filter(
+    const tabs = withDirtyBody(notes.tabs, activeId, value).filter(
       (tab) => tab.id !== id,
     );
     void updateNotesData({
@@ -151,7 +156,7 @@ export function NotesWidget() {
   }
 
   return (
-    <div className="flex h-full flex-col gap-2 px-2.5 pb-2.5 pt-2">
+    <div className="flex h-full flex-col gap-2 px-2.5 pt-2 pb-2.5">
       <div className="flex items-center gap-1">
         <div className="thin-scroll flex min-w-0 flex-1 gap-1 overflow-x-auto">
           {notes.tabs.map((tab, index) => {
@@ -164,15 +169,15 @@ export function NotesWidget() {
               <div
                 key={tab.id}
                 className={cn(
-                  "flex shrink-0 items-center gap-1 whitespace-nowrap rounded-md px-2 py-1 text-[11px] transition-colors",
+                  'flex shrink-0 items-center gap-1 rounded-md px-2 py-1 text-[11px] whitespace-nowrap transition-colors',
                   activeTab
-                    ? "bg-accent text-accent-foreground"
-                    : "text-muted-foreground hover:text-foreground",
+                    ? 'bg-accent text-accent-foreground'
+                    : 'text-muted-foreground hover:text-foreground',
                 )}
               >
                 <button
                   type="button"
-                  className="max-w-[7.5rem] truncate"
+                  className="max-w-30 truncate"
                   aria-label={`Open ${label}`}
                   aria-pressed={activeTab}
                   onClick={() => selectTab(tab.id)}
@@ -205,11 +210,11 @@ export function NotesWidget() {
           <Plus />
         </Button>
       </div>
-      <div
-        className="thin-scroll note-markdown min-h-0 flex-1 overflow-auto rounded-md border border-border bg-muted px-2.5 py-2.5 text-[12.5px] leading-relaxed"
-        onClick={() => editor?.chain().focus().run()}
-      >
-        <EditorContent editor={editor} />
+      <div className="thin-scroll note-markdown min-h-0 flex-1 overflow-auto rounded-md border border-border bg-muted p-2.5 text-[12.5px] leading-relaxed">
+        <EditorContent
+          editor={editor}
+          onClick={() => editor?.chain().focus().run()}
+        />
       </div>
     </div>
   );

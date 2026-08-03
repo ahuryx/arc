@@ -1,5 +1,6 @@
-import type { LiveFeed, LiveFeedSnapshot } from "@/core/liveFeed";
-import { useEffect, useState } from "react";
+import { useEffect, useState } from 'react';
+
+import type { LiveFeed, LiveFeedSnapshot } from '@/core/liveFeed';
 
 /** Subscribe to a LiveFeed; stops polling on unmount. */
 export function useLiveFeed<T>(feed: LiveFeed<T>): LiveFeedSnapshot<T> {
@@ -9,6 +10,7 @@ export function useLiveFeed<T>(feed: LiveFeed<T>): LiveFeedSnapshot<T> {
     feed.start();
     void feed.refresh();
     const unsub = feed.subscribe(setSnapshot);
+
     return () => {
       unsub();
       feed.stop();

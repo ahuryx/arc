@@ -1,50 +1,86 @@
-import { cn } from "@/lib/utils";
+import { cn } from '@/lib/utils';
 
 export type WeatherIconName =
-  | "sunrise"
-  | "sunset"
-  | "clear"
-  | "clear-night"
-  | "partly-cloudy"
-  | "partly-cloudy-night"
-  | "haze"
-  | "fog"
-  | "windy"
-  | "cloudy"
-  | "thunderstorm"
-  | "rain"
-  | "heavy-rain"
-  | "drizzle"
-  | "drizzle-night"
-  | "snow"
-  | "heavy-snow"
-  | "sleet";
+  | 'clear-night'
+  | 'clear'
+  | 'cloudy'
+  | 'drizzle-night'
+  | 'drizzle'
+  | 'fog'
+  | 'haze'
+  | 'heavy-rain'
+  | 'heavy-snow'
+  | 'partly-cloudy-night'
+  | 'partly-cloudy'
+  | 'rain'
+  | 'sleet'
+  | 'snow'
+  | 'sunrise'
+  | 'sunset'
+  | 'thunderstorm'
+  | 'windy';
 
 const ICON_SRC: Record<WeatherIconName, string> = {
-  sunrise: "/weather-icons/sunrise.png",
-  sunset: "/weather-icons/sunset.png",
-  clear: "/weather-icons/clear.png",
-  "clear-night": "/weather-icons/clear-night.png",
-  "partly-cloudy": "/weather-icons/partly-cloudy.png",
-  "partly-cloudy-night": "/weather-icons/partly-cloudy-night.png",
-  haze: "/weather-icons/haze.png",
-  fog: "/weather-icons/fog.png",
-  windy: "/weather-icons/windy.png",
-  cloudy: "/weather-icons/cloudy.png",
-  thunderstorm: "/weather-icons/thunderstorm.png",
-  rain: "/weather-icons/rain.png",
-  "heavy-rain": "/weather-icons/heavy-rain.png",
-  drizzle: "/weather-icons/drizzle.png",
-  "drizzle-night": "/weather-icons/drizzle-night.png",
-  snow: "/weather-icons/snow.png",
-  "heavy-snow": "/weather-icons/heavy-snow.png",
-  sleet: "/weather-icons/sleet.png",
+  sunrise: '/weather-icons/sunrise.png',
+  sunset: '/weather-icons/sunset.png',
+  clear: '/weather-icons/clear.png',
+  'clear-night': '/weather-icons/clear-night.png',
+  'partly-cloudy': '/weather-icons/partly-cloudy.png',
+  'partly-cloudy-night': '/weather-icons/partly-cloudy-night.png',
+  haze: '/weather-icons/haze.png',
+  fog: '/weather-icons/fog.png',
+  windy: '/weather-icons/windy.png',
+  cloudy: '/weather-icons/cloudy.png',
+  thunderstorm: '/weather-icons/thunderstorm.png',
+  rain: '/weather-icons/rain.png',
+  'heavy-rain': '/weather-icons/heavy-rain.png',
+  drizzle: '/weather-icons/drizzle.png',
+  'drizzle-night': '/weather-icons/drizzle-night.png',
+  snow: '/weather-icons/snow.png',
+  'heavy-snow': '/weather-icons/heavy-snow.png',
+  sleet: '/weather-icons/sleet.png',
+};
+
+const DAY_NIGHT_ICONS: Partial<
+  Record<number, { day: WeatherIconName; night: WeatherIconName }>
+> = {
+  0: { day: 'clear', night: 'clear-night' },
+  1: { day: 'clear', night: 'clear-night' },
+  2: { day: 'partly-cloudy', night: 'partly-cloudy-night' },
+  51: { day: 'drizzle', night: 'drizzle-night' },
+  53: { day: 'drizzle', night: 'drizzle-night' },
+  55: { day: 'drizzle', night: 'drizzle-night' },
+  56: { day: 'drizzle', night: 'drizzle-night' },
+  57: { day: 'drizzle', night: 'drizzle-night' },
+};
+
+const ICON_BY_CODE: Partial<Record<number, WeatherIconName>> = {
+  3: 'cloudy',
+  45: 'fog',
+  48: 'fog',
+  61: 'rain',
+  63: 'rain',
+  65: 'heavy-rain',
+  66: 'sleet',
+  67: 'sleet',
+  71: 'snow',
+  73: 'snow',
+  75: 'heavy-snow',
+  77: 'snow',
+  80: 'rain',
+  81: 'rain',
+  82: 'heavy-rain',
+  85: 'snow',
+  86: 'heavy-snow',
+  95: 'thunderstorm',
+  96: 'thunderstorm',
+  99: 'thunderstorm',
 };
 
 interface WeatherIconProps {
   code: number;
   className?: string;
-  size?: "sm" | "lg";
+  size?: 'lg' | 'sm';
   /** Force night variants when true; omit to use local hour. */
   night?: boolean;
   alt?: string;
@@ -56,43 +92,32 @@ function isNightHour(date = new Date()): boolean {
 }
 
 /** Map Open-Meteo WMO weather code → Apple Weather PNG. */
-export function weatherIconForCode(
+function weatherIconForCode(
   code: number,
   night = isNightHour(),
 ): WeatherIconName {
-  if (code === 0 || code === 1) return night ? "clear-night" : "clear";
-  if (code === 2) return night ? "partly-cloudy-night" : "partly-cloudy";
-  if (code === 3) return "cloudy";
-  if (code === 45 || code === 48) return "fog";
-  if (code >= 51 && code <= 57) {
-    return night ? "drizzle-night" : "drizzle";
-  }
-  if (code === 66 || code === 67) return "sleet";
-  if (code === 65 || code === 82) return "heavy-rain";
-  if ((code >= 61 && code <= 63) || code === 80 || code === 81) return "rain";
-  if (code === 75 || code === 86) return "heavy-snow";
-  if ((code >= 71 && code <= 77) || code === 85) return "snow";
-  if (code >= 95) return "thunderstorm";
-  return "cloudy";
+  const dayNightIcon = DAY_NIGHT_ICONS[code];
+  if (dayNightIcon) return night ? dayNightIcon.night : dayNightIcon.day;
+  return ICON_BY_CODE[code] ?? 'cloudy';
 }
 
 /** Apple Weather PNG from Open-Meteo WMO code. */
 export function WeatherIcon({
   code,
   className,
-  size = "sm",
+  size = 'sm',
   night,
-  alt = "",
+  alt = '',
 }: WeatherIconProps) {
   const name = weatherIconForCode(code, night ?? isNightHour());
-  const dim = size === "lg" ? "size-14" : "size-7";
+  const dim = size === 'lg' ? 'size-14' : 'size-7';
 
   return (
     <img
       src={ICON_SRC[name]}
       alt={alt}
       draggable={false}
-      className={cn(dim, "object-contain", className)}
+      className={cn(dim, 'object-contain', className)}
     />
   );
 }

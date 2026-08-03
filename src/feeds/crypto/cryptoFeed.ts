@@ -1,7 +1,11 @@
-import { createPollingFeed, type LiveFeed } from "@/core/liveFeed";
-import type { CryptoData } from "@/core/types";
-import { fetchCryptoTickers } from "./fetchTickers";
-import type { CoinTicker } from "./types";
+import type { LiveFeed } from '@/core/liveFeed';
+import type { CryptoData } from '@/core/types';
+
+import { createPollingFeed } from '@/core/liveFeed';
+
+import type { CoinTicker } from './types';
+
+import { fetchCryptoTickers } from './fetchTickers';
 
 const feeds = new Map<string, LiveFeed<CoinTicker[]>>();
 
@@ -19,6 +23,7 @@ function feedKey(config: CryptoData): string {
 export function getCryptoFeed(config: CryptoData): LiveFeed<CoinTicker[]> {
   const key = feedKey(config);
   let feed = feeds.get(key);
+
   if (!feed) {
     const snapshot = structuredClone(config);
     feed = createPollingFeed({
@@ -28,9 +33,10 @@ export function getCryptoFeed(config: CryptoData): LiveFeed<CoinTicker[]> {
     });
     feeds.set(key, feed);
   }
+
   return feed;
 }
 
-export type { CoinTicker } from "./types";
-export { formatPrice, quoteLabel } from "./fetchTickers";
-export { resolveIconUrl, ledgerIdForSymbol } from "./icons";
+export { formatPrice, quoteLabel } from './fetchTickers';
+export { ledgerIdForSymbol, resolveIconUrl } from './icons';
+export type { CoinTicker } from './types';

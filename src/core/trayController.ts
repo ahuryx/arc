@@ -1,10 +1,13 @@
-import { TrayIcon } from "@tauri-apps/api/tray";
-import { Menu } from "@tauri-apps/api/menu";
-import { defaultWindowIcon } from "@tauri-apps/api/app";
-import { listen, type UnlistenFn } from "@tauri-apps/api/event";
-import { APP_STATE_CHANGED_EVENT } from "./types";
-import { WIDGET_CATALOG } from "./widgetCatalog";
-import { watchSystemTheme } from "./theme";
+import type { UnlistenFn } from '@tauri-apps/api/event';
+
+import { defaultWindowIcon } from '@tauri-apps/api/app';
+import { listen } from '@tauri-apps/api/event';
+import { Menu } from '@tauri-apps/api/menu';
+import { TrayIcon } from '@tauri-apps/api/tray';
+
+import { watchSystemTheme } from './theme';
+import { APP_STATE_CHANGED_EVENT } from './types';
+import { WIDGET_CATALOG } from './widgetCatalog';
 import {
   getWorkspaceSnapshot,
   openSettings,
@@ -16,15 +19,23 @@ import {
   syncSystemThemeChrome,
   syncWindowFlags,
   toggleWidgetVisibility,
-} from "./workspaceHost";
+} from './workspaceHost';
 
-const TRAY_ID = "widget-app-tray";
+const TRAY_ID = 'widget-app-tray';
 
 let trayInstance: TrayIcon | null = null;
 let trayMenu: Menu | null = null;
 let unlistenState: UnlistenFn | null = null;
 let unwatchSystem: (() => void) | null = null;
 let initPromise: Promise<void> | null = null;
+
+function trayAction(action: () => Promise<void>): () => void {
+  return () => {
+    void action().catch((error: unknown) => {
+      console.error('[tray] action failed', error);
+    });
+  };
+}
 
 async function buildTrayMenu(): Promise<Menu> {
   const workspace = getWorkspaceSnapshot();
@@ -33,65 +44,65 @@ async function buildTrayMenu(): Promise<Menu> {
     id: `widget-${widget.id}`,
     text: widget.title,
     checked: workspace.widgets[widget.id].visible,
-    action: async () => {
+    action: trayAction(async () => {
       await toggleWidgetVisibility(widget.id);
       await refreshTrayMenu();
-    },
+    }),
   }));
 
   return Menu.new({
     items: [
       {
-        id: "settings",
-        text: "Settings…",
-        action: async () => {
+        id: 'settings',
+        text: 'Settings…',
+        action: trayAction(async () => {
           await openSettings();
-        },
+        }),
       },
-      { item: "Separator" },
+      { item: 'Separator' },
       ...widgetItems,
-      { item: "Separator" },
+      { item: 'Separator' },
       {
-        id: "lock",
-        text: "Lock widgets",
+        id: 'lock',
+        text: 'Lock widgets',
         checked: workspace.locked,
-        action: async () => {
+        action: trayAction(async () => {
           await setLocked(!getWorkspaceSnapshot().locked);
           await refreshTrayMenu();
-        },
+        }),
       },
       {
-        id: "keep-on-top",
-        text: "Keep on top",
+        id: 'keep-on-top',
+        text: 'Keep on top',
         checked: workspace.keepOnTop,
-        action: async () => {
+        action: trayAction(async () => {
           await setKeepOnTopSetting(!getWorkspaceSnapshot().keepOnTop);
           await refreshTrayMenu();
-        },
+        }),
       },
       {
-        id: "arrange-now",
-        text: "Arrange now",
-        action: async () => {
+        id: 'arrange-now',
+        text: 'Arrange now',
+        action: trayAction(async () => {
           await runAutoArrange();
-        },
+        }),
       },
       {
-        id: "start-with-os",
-        text: "Launch at startup",
+        id: 'start-with-os',
+        text: 'Launch at startup',
         checked: workspace.startWithWindows,
-        action: async () => {
+        action: trayAction(async () => {
           await setAutostart(!getWorkspaceSnapshot().startWithWindows);
           await refreshTrayMenu();
-        },
+        }),
       },
-      { item: "Separator" },
+      { item: 'Separator' },
       {
-        id: "quit",
-        text: "Quit",
-        action: async () => {
+        id: 'quit',
+        text: 'Quit',
+        action: trayAction(async () => {
           await quitApp();
-        },
+        }),
       },
     ],
   });
@@ -101,6 +112,7 @@ async function refreshTrayMenu(): Promise<void> {
   if (!trayInstance) {
     return;
   }
+
   trayMenu = await buildTrayMenu();
   await trayInstance.setMenu(trayMenu);
 }
@@ -122,9 +134,9 @@ function scheduleStateSync(): void {
   }, STATE_SYNC_MS);
 }
 
-export async function initTray(): Promise<void> {
+export function initTray(): Promise<void> {
   if (trayInstance) {
-    return;
+    return Promise.resolve();
   }
   if (initPromise) {
     return initPromise;
@@ -141,15 +153,16 @@ export async function initTray(): Promise<void> {
     trayMenu = await buildTrayMenu();
 
     let icon;
+
     try {
       icon = await defaultWindowIcon();
     } catch (error) {
-      console.error("[tray] defaultWindowIcon failed", error);
+      console.error('[tray] defaultWindowIcon failed', error);
     }
 
     if (!icon) {
       throw new Error(
-        "Tray icon unavailable: defaultWindowIcon returned null. Check core:app:allow-default-window-icon and bundle icons.",
+        'Tray icon unavailable: defaultWindowIcon returned null. Check core:app:allow-default-window-icon and bundle icons.',
       );
     }
 
@@ -157,7 +170,7 @@ export async function initTray(): Promise<void> {
       id: TRAY_ID,
       menu: trayMenu,
       showMenuOnLeftClick: false,
-      tooltip: "Widget App",
+      tooltip: 'Widget App',
       icon,
     });
 
@@ -165,8 +178,11 @@ export async function initTray(): Promise<void> {
       unlistenState();
       unlistenState = null;
     }
-    unlistenState = await listen(APP_STATE_CHANGED_EVENT, () => {
+
+    await listen(APP_STATE_CHANGED_EVENT, () => {
       scheduleStateSync();
+    }).then((nextUnlisten) => {
+      unlistenState = nextUnlisten;
     });
 
     unwatchSystem?.();
@@ -175,9 +191,10 @@ export async function initTray(): Promise<void> {
     });
   })();
 
-  try {
-    await initPromise;
-  } finally {
-    initPromise = null;
-  }
+  const initialization = initPromise;
+  return initialization.finally(() => {
+    if (initPromise === initialization) {
+      initPromise = null;
+    }
+  });
 }

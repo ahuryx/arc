@@ -1,15 +1,15 @@
-import { useEffect, useRef, useState } from "react";
-import { ChevronDown, ChevronUp, Plus, Trash2 } from "lucide-react";
-import {
-  SettingsSection,
-} from "@/components/settings/settings-section";
-import { SymbolCombobox } from "@/components/settings/symbol-combobox";
-import { Button } from "@/components/ui/button";
-import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
-import type { CryptoData, CryptoQuote, CryptoRow } from "@/core/types";
-import { setCryptoSettings } from "@/core/workspaceHost";
-import { defaultCryptoData } from "@/feeds/crypto/defaults";
-import { cn } from "@/lib/utils";
+import { ChevronDown, ChevronUp, Plus, Trash2 } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
+
+import type { CryptoData, CryptoRow } from '@/core/types';
+
+import { SettingsSection } from '@/components/settings/settings-section';
+import { SymbolCombobox } from '@/components/settings/symbol-combobox';
+import { Button } from '@/components/ui/button';
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
+import { setCryptoSettings } from '@/core/workspaceHost';
+import { defaultCryptoData } from '@/feeds/crypto/defaults';
+import { cn } from '@/lib/utils';
 
 const SAVE_MS = 400;
 
@@ -17,19 +17,13 @@ function newRowId(): string {
   return `row-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`;
 }
 
-export function CryptoSettingsPanel({
-  value,
-}: {
-  value?: CryptoData | null;
-}) {
+export function CryptoSettingsPanel({ value }: { value?: CryptoData | null }) {
   const [draft, setDraft] = useState<CryptoData>(
     () => value ?? defaultCryptoData(),
   );
   const [saving, setSaving] = useState(false);
   const [dirty, setDirty] = useState(false);
-  const timer = useRef<number | undefined>(undefined);
-  const draftRef = useRef(draft);
-  draftRef.current = draft;
+  const timerRef = useRef<number | undefined>(undefined);
 
   useEffect(() => {
     if (dirty) return;
@@ -38,16 +32,16 @@ export function CryptoSettingsPanel({
 
   useEffect(() => {
     return () => {
-      if (timer.current != null) window.clearTimeout(timer.current);
+      if (timerRef.current != null) window.clearTimeout(timerRef.current);
     };
   }, []);
 
   function scheduleSave(next: CryptoData): void {
     setDirty(true);
     setDraft(next);
-    if (timer.current != null) window.clearTimeout(timer.current);
-    timer.current = window.setTimeout(() => {
-      timer.current = undefined;
+    if (timerRef.current != null) window.clearTimeout(timerRef.current);
+    timerRef.current = window.setTimeout(() => {
+      timerRef.current = undefined;
       setSaving(true);
       void setCryptoSettings(next)
         .then(() => setDirty(false))
@@ -57,11 +51,11 @@ export function CryptoSettingsPanel({
 
   function patchRow(
     id: string,
-    patch: Partial<Pick<CryptoRow, "symbol" | "quote">>,
+    patch: Partial<Pick<CryptoRow, 'quote' | 'symbol'>>,
   ): void {
     scheduleSave({
-      ...draftRef.current,
-      rows: draftRef.current.rows.map((row) =>
+      ...draft,
+      rows: draft.rows.map((row) =>
         row.id === id ? { ...row, ...patch } : row,
       ),
     });
@@ -69,34 +63,31 @@ export function CryptoSettingsPanel({
 
   function addRow(): void {
     scheduleSave({
-      ...draftRef.current,
-      rows: [
-        ...draftRef.current.rows,
-        { id: newRowId(), symbol: "BTC", quote: "usd" },
-      ],
+      ...draft,
+      rows: [...draft.rows, { id: newRowId(), symbol: 'BTC', quote: 'usd' }],
     });
   }
 
   function removeRow(id: string): void {
-    if (draftRef.current.rows.length <= 1) return;
+    if (draft.rows.length <= 1) return;
     scheduleSave({
-      ...draftRef.current,
-      rows: draftRef.current.rows.filter((row) => row.id !== id),
+      ...draft,
+      rows: draft.rows.filter((row) => row.id !== id),
     });
   }
 
   function moveRow(id: string, direction: -1 | 1): void {
-    const rows = [...draftRef.current.rows];
+    const rows = [...draft.rows];
     const index = rows.findIndex((row) => row.id === id);
     if (index < 0) return;
     const next = index + direction;
     if (next < 0 || next >= rows.length) return;
     const [item] = rows.splice(index, 1);
     rows.splice(next, 0, item);
-    scheduleSave({ ...draftRef.current, rows });
+    scheduleSave({ ...draft, rows });
   }
 
-  const hasToman = draft.rows.some((row) => row.quote === "toman");
+  const hasToman = draft.rows.some((row) => row.quote === 'toman');
 
   return (
     <SettingsSection title="Crypto">
@@ -107,8 +98,8 @@ export function CryptoSettingsPanel({
 
       <div className="flex items-center justify-between gap-2 pt-0.5">
         <span className="text-[11px] text-muted-foreground">
-          {draft.rows.length} coin{draft.rows.length === 1 ? "" : "s"}
-          {saving ? " · Saving…" : dirty ? " · Unsaved" : ""}
+          {draft.rows.length} coin{draft.rows.length === 1 ? '' : 's'}
+          {saving ? ' · Saving…' : dirty ? ' · Unsaved' : ''}
         </span>
         <Button
           type="button"
@@ -127,8 +118,8 @@ export function CryptoSettingsPanel({
           <li
             key={row.id}
             className={cn(
-              "flex items-center gap-1 rounded-md border border-border/70 bg-muted/40 p-1.5",
-              "transition-colors hover:border-border hover:bg-muted/70",
+              'flex items-center gap-1 rounded-md border border-border/70 bg-muted/40 p-1.5',
+              'transition-colors hover:border-border hover:bg-muted/70',
             )}
           >
             <div className="flex shrink-0 flex-col">
@@ -168,9 +159,9 @@ export function CryptoSettingsPanel({
               type="single"
               size="sm"
               value={row.quote}
-              onValueChange={(value) => {
-                if (value !== "usd" && value !== "toman") return;
-                patchRow(row.id, { quote: value as CryptoQuote });
+              onValueChange={(nextQuote) => {
+                if (nextQuote !== 'usd' && nextQuote !== 'toman') return;
+                patchRow(row.id, { quote: nextQuote });
               }}
               aria-label={`${row.symbol} quote`}
               className="shrink-0"

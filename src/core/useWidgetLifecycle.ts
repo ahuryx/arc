@@ -1,18 +1,20 @@
-import { useEffect } from "react";
-import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
-import { WIDGET_BY_LABEL } from "./widgetRegistry";
+import { getCurrentWebviewWindow } from '@tauri-apps/api/webviewWindow';
+import { useEffect } from 'react';
+
+import { WIDGET_BY_LABEL } from './widgetRegistry';
 import {
   flushWidgetPosition,
   getWorkspaceSnapshot,
   noteWidgetPosition,
   setWidgetVisibility,
-} from "./workspaceHost";
+} from './workspaceHost';
 
 const POSITION_FLUSH_MS = 280;
 
 export function useWidgetLifecycle(): void {
   useEffect(() => {
     let win;
+
     try {
       win = getCurrentWebviewWindow();
     } catch {
@@ -20,6 +22,7 @@ export function useWidgetLifecycle(): void {
     }
 
     const widget = WIDGET_BY_LABEL[win.label];
+
     if (!widget) {
       return;
     }
@@ -44,10 +47,13 @@ export function useWidgetLifecycle(): void {
         if (getWorkspaceSnapshot().locked) {
           return;
         }
+
         noteWidgetPosition(widget.id, event.payload.x, event.payload.y);
+
         if (flushTimer != null) {
           window.clearTimeout(flushTimer);
         }
+
         flushTimer = window.setTimeout(() => {
           flushTimer = undefined;
           void flushWidgetPosition();
@@ -60,6 +66,7 @@ export function useWidgetLifecycle(): void {
     return () => {
       unlistenClose?.();
       unlistenMove?.();
+
       if (flushTimer != null) {
         window.clearTimeout(flushTimer);
         void flushWidgetPosition();

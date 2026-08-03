@@ -1,10 +1,11 @@
-import * as React from "react";
-import { ChevronDown, ChevronUp } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { ChevronDown, ChevronUp } from 'lucide-react';
+import * as React from 'react';
+
+import { cn } from '@/lib/utils';
 
 type NumberInputProps = Omit<
   React.InputHTMLAttributes<HTMLInputElement>,
-  "type" | "onChange" | "value"
+  'onChange' | 'type' | 'value'
 > & {
   value: number;
   onValueChange: (value: number) => void;
@@ -15,8 +16,8 @@ type NumberInputProps = Omit<
 
 function clampOptional(value: number, min?: number, max?: number): number {
   let next = value;
-  if (typeof min === "number") next = Math.max(min, next);
-  if (typeof max === "number") next = Math.min(max, next);
+  if (typeof min === 'number') next = Math.max(min, next);
+  if (typeof max === 'number') next = Math.min(max, next);
   return next;
 }
 
@@ -51,7 +52,7 @@ export function NumberInput({
     setDraft(String(next));
   };
 
-  const bump = (direction: 1 | -1) => {
+  const bump = (direction: -1 | 1) => {
     if (disabled) return;
     const base = Number(draft);
     const current = Number.isFinite(base) ? base : value;
@@ -63,9 +64,9 @@ export function NumberInput({
   return (
     <div
       className={cn(
-        "group relative inline-flex h-8 overflow-hidden rounded-md border border-border bg-muted",
-        "transition-colors focus-within:border-foreground/30",
-        disabled && "pointer-events-none opacity-50",
+        'group relative inline-flex h-8 overflow-hidden rounded-md border border-border bg-muted',
+        'transition-colors focus-within:border-foreground/30',
+        disabled && 'pointer-events-none opacity-50',
         className,
       )}
     >
@@ -77,11 +78,11 @@ export function NumberInput({
         disabled={disabled}
         value={draft}
         className={cn(
-          "h-full min-w-0 flex-1 border-0 bg-transparent pe-7 ps-2.5 text-[13px] text-foreground tabular-nums outline-none",
+          'h-full min-w-0 flex-1 border-0 bg-transparent ps-2.5 pe-7 text-[13px] text-foreground tabular-nums outline-none',
         )}
         onFocus={() => setFocused(true)}
         onChange={(event) => {
-          const raw = event.target.value.replace(/[^\d.-]/g, "");
+          const raw = event.target.value.replace(/[^\d\-.]/g, '');
           setDraft(raw);
         }}
         onBlur={(event) => {
@@ -90,25 +91,26 @@ export function NumberInput({
           onBlur?.(event);
         }}
         onKeyDown={(event) => {
-          if (event.key === "ArrowUp") {
+          if (event.key === 'ArrowUp') {
             event.preventDefault();
             bump(1);
-          } else if (event.key === "ArrowDown") {
+          } else if (event.key === 'ArrowDown') {
             event.preventDefault();
             bump(-1);
-          } else if (event.key === "Enter") {
+          } else if (event.key === 'Enter') {
             event.preventDefault();
             commit(draft);
             event.currentTarget.blur();
           }
+
           onKeyDown?.(event);
         }}
       />
-      <div className="absolute inset-y-0 end-0 flex w-5 flex-col border-s border-border">
+      <div className="absolute inset-y-0 inset-e-0 flex w-5 flex-col border-s border-border">
         <button
           type="button"
           tabIndex={-1}
-          disabled={disabled || (typeof max === "number" && value >= max)}
+          disabled={disabled || (typeof max === 'number' && value >= max)}
           aria-label="Increase"
           className="flex flex-1 items-center justify-center text-muted-foreground transition-colors hover:bg-accent hover:text-foreground disabled:pointer-events-none disabled:opacity-30"
           onMouseDown={(event) => event.preventDefault()}
@@ -119,7 +121,7 @@ export function NumberInput({
         <button
           type="button"
           tabIndex={-1}
-          disabled={disabled || (typeof min === "number" && value <= min)}
+          disabled={disabled || (typeof min === 'number' && value <= min)}
           aria-label="Decrease"
           className="flex flex-1 items-center justify-center border-t border-border text-muted-foreground transition-colors hover:bg-accent hover:text-foreground disabled:pointer-events-none disabled:opacity-30"
           onMouseDown={(event) => event.preventDefault()}

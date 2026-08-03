@@ -1,15 +1,17 @@
-import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
-import { WIDGET_BY_LABEL } from "@/core/widgetRegistry";
-import { useWidgetLifecycle } from "@/core/useWidgetLifecycle";
-import { WidgetShell } from "@/shell/widget-shell";
+import { getCurrentWebviewWindow } from '@tauri-apps/api/webviewWindow';
+
+import { useWidgetLifecycle } from '@/core/useWidgetLifecycle';
+import { WIDGET_BY_LABEL } from '@/core/widgetRegistry';
+import { WidgetShell } from '@/shell/widget-shell';
 
 function readWindowLabel(): string {
-  const fromQuery = new URLSearchParams(window.location.search).get("label");
+  const fromQuery = new URLSearchParams(window.location.search).get('label');
   if (fromQuery) return fromQuery;
+
   try {
     return getCurrentWebviewWindow().label;
   } catch {
-    return "";
+    return '';
   }
 }
 
@@ -26,6 +28,7 @@ function App() {
   }
 
   const widget = WIDGET_BY_LABEL[label];
+
   if (!widget) {
     return (
       <div className="p-4 text-sm text-muted-foreground">

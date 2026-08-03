@@ -1,15 +1,10 @@
 export type WidgetId =
-  | "clock"
-  | "calendar"
-  | "crypto"
-  | "notes"
-  | "pomodoro"
-  | "weather";
+  'calendar' | 'clock' | 'crypto' | 'notes' | 'pomodoro' | 'weather';
 
-export type ArrangeSide = "left" | "right";
+export type ArrangeSide = 'left' | 'right';
 
 /** Preference: fixed dark/light, or follow OS. */
-export type ThemeId = "dark" | "light" | "system";
+export type ThemeId = 'dark' | 'light' | 'system';
 
 export interface WidgetState {
   visible: boolean;
@@ -50,12 +45,12 @@ export interface NotesData {
   active: string;
 }
 
-export type CalendarMode = "gregorian" | "jalali";
+export type CalendarMode = 'gregorian' | 'jalali';
 
 /** Clock display: 12-hour (AM/PM) or 24-hour. */
-export type TimeFormat = "12" | "24";
+export type TimeFormat = '12' | '24';
 
-export type CryptoQuote = "usd" | "toman";
+export type CryptoQuote = 'toman' | 'usd';
 
 export interface CryptoRow {
   id: string;
@@ -82,4 +77,4 @@ export interface AppState {
   data: WidgetData;
 }
 
-export const APP_STATE_CHANGED_EVENT = "app-state-changed";
+export const APP_STATE_CHANGED_EVENT = 'app-state-changed';

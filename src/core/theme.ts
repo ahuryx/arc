@@ -1,29 +1,29 @@
-import type { ThemeId } from "./types";
+import type { ThemeId } from './types';
 
-export type ResolvedTheme = "dark" | "light";
+export type ResolvedTheme = 'dark' | 'light';
 
 /** Apply resolved theme to document (shadcn `.dark` class). */
 export function getSystemTheme(): ResolvedTheme {
-  return window.matchMedia("(prefers-color-scheme: dark)").matches
-    ? "dark"
-    : "light";
+  return window.matchMedia('(prefers-color-scheme: dark)').matches
+    ? 'dark'
+    : 'light';
 }
 
 export function resolveTheme(theme: ThemeId): ResolvedTheme {
-  return theme === "system" ? getSystemTheme() : theme;
+  return theme === 'system' ? getSystemTheme() : theme;
 }
 
 /** Apply resolved theme to document (CSS tokens). */
 export function applyTheme(theme: ThemeId): ResolvedTheme {
   const resolved = resolveTheme(theme);
-  document.documentElement.classList.toggle("dark", resolved === "dark");
+  document.documentElement.classList.toggle('dark', resolved === 'dark');
   return resolved;
 }
 
 /** Listen for OS dark/light changes. */
 export function watchSystemTheme(onChange: () => void): () => void {
-  const mq = window.matchMedia("(prefers-color-scheme: dark)");
+  const mq = window.matchMedia('(prefers-color-scheme: dark)');
   const handler = () => onChange();
-  mq.addEventListener("change", handler);
-  return () => mq.removeEventListener("change", handler);
+  mq.addEventListener('change', handler);
+  return () => mq.removeEventListener('change', handler);
 }

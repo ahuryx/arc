@@ -1,11 +1,11 @@
-import { Switch } from "@/components/ui/switch";
-import { cn } from "@/lib/utils";
+import { Switch } from '@/components/ui/switch';
+import { cn } from '@/lib/utils';
 
 interface ToggleProps {
   checked: boolean;
   onCheckedChange: (checked: boolean) => void;
   className?: string;
-  "aria-label"?: string;
+  'aria-label'?: string;
 }
 
 /** Boolean switch — thin wrapper kept for existing settings call sites. */

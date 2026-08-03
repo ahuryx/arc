@@ -1,7 +1,7 @@
 name: Feature request
 description: Suggest an idea or enhancement for Arc
-title: "[Feature]: "
-labels: ["enhancement"]
+title: '[Feature]: '
+labels: ['enhancement']
 body:
   - type: markdown
     attributes:
@@ -11,7 +11,8 @@ body:
     id: problem
     attributes:
       label: Problem
-      description: What are you trying to accomplish? What is missing or awkward today?
+      description:
+        What are you trying to accomplish? What is missing or awkward today?
     validations:
       required: true
   - type: textarea

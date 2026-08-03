@@ -1,4 +1,4 @@
-export type FeedStatus = "connecting" | "live" | "error";
+export type FeedStatus = 'connecting' | 'error' | 'live';
 
 export interface LiveFeedSnapshot<T> {
   data: T;
@@ -8,11 +8,11 @@ export interface LiveFeedSnapshot<T> {
 }
 
 export interface LiveFeed<T> {
-  getSnapshot(): LiveFeedSnapshot<T>;
-  subscribe(listener: (snapshot: LiveFeedSnapshot<T>) => void): () => void;
-  start(): void;
-  stop(): void;
-  refresh(): Promise<void>;
+  getSnapshot: () => LiveFeedSnapshot<T>;
+  subscribe: (listener: (snapshot: LiveFeedSnapshot<T>) => void) => () => void;
+  start: () => void;
+  stop: () => void;
+  refresh: () => Promise<void>;
 }
 
 interface CreatePollingFeedOptions<T> {
@@ -28,12 +28,12 @@ export function createPollingFeed<T>(
   const listeners = new Set<(snapshot: LiveFeedSnapshot<T>) => void>();
   let snapshot: LiveFeedSnapshot<T> = {
     data: options.initial,
-    status: "connecting",
+    status: 'connecting',
     error: null,
     ts: 0,
   };
   let timer: number | null = null;
-  let inFlight = false;
+  let activeRefresh: Promise<void> | null = null;
 
   function emit(): void {
     for (const listener of listeners) {
@@ -41,31 +41,39 @@ export function createPollingFeed<T>(
     }
   }
 
-  async function refresh(): Promise<void> {
-    if (inFlight) {
-      return;
+  function refresh(): Promise<void> {
+    if (activeRefresh) {
+      return activeRefresh;
     }
-    inFlight = true;
-    try {
-      const data = await options.fetch();
-      snapshot = {
-        data,
-        status: "live",
-        error: null,
-        ts: Date.now(),
-      };
-      emit();
-    } catch (error) {
-      snapshot = {
-        ...snapshot,
-        status: "error",
-        error: error instanceof Error ? error.message : String(error),
-        ts: Date.now(),
-      };
-      emit();
-    } finally {
-      inFlight = false;
-    }
+
+    const refreshPromise = options
+      .fetch()
+      .then((data) => {
+        snapshot = {
+          data,
+          status: 'live',
+          error: null,
+          ts: Date.now(),
+        };
+        emit();
+      })
+      .catch((error: unknown) => {
+        snapshot = {
+          ...snapshot,
+          status: 'error',
+          error: error instanceof Error ? error.message : String(error),
+          ts: Date.now(),
+        };
+        emit();
+      })
+      .finally(() => {
+        if (activeRefresh === refreshPromise) {
+          activeRefresh = null;
+        }
+      });
+
+    activeRefresh = refreshPromise;
+    return refreshPromise;
   }
 
   return {
@@ -73,6 +81,7 @@ export function createPollingFeed<T>(
     subscribe(listener) {
       listeners.add(listener);
       listener(snapshot);
+
       return () => {
         listeners.delete(listener);
       };
@@ -81,6 +90,7 @@ export function createPollingFeed<T>(
       if (timer != null) {
         return;
       }
+
       void refresh();
       timer = window.setInterval(() => {
         void refresh();

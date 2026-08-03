@@ -1,6 +1,7 @@
-import { useEffect, useState } from "react";
-import { resolveIconUrl } from "@/feeds/crypto/icons";
-import { cn } from "@/lib/utils";
+import { useEffect, useRef, useState } from 'react';
+
+import { resolveIconUrl } from '@/feeds/crypto/icons';
+import { cn } from '@/lib/utils';
 
 function LetterFallback({
   symbol,
@@ -12,7 +13,7 @@ function LetterFallback({
   return (
     <div
       className={cn(
-        "flex size-7 shrink-0 items-center justify-center rounded-full bg-muted text-[11px] font-semibold text-muted-foreground",
+        'flex size-7 shrink-0 items-center justify-center rounded-full bg-muted text-[11px] font-semibold text-muted-foreground',
         className,
       )}
       aria-hidden
@@ -31,6 +32,7 @@ export function CryptoIcon({
 }) {
   const [src, setSrc] = useState<string | null>(null);
   const [failed, setFailed] = useState(false);
+  const imageRef = useRef<HTMLImageElement>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -51,6 +53,20 @@ export function CryptoIcon({
     };
   }, [symbol]);
 
+  useEffect(() => {
+    const image = imageRef.current;
+    if (!image) return;
+
+    const handleError = () => setFailed(true);
+    image.addEventListener('error', handleError);
+
+    if (image.complete && image.naturalWidth === 0) {
+      handleError();
+    }
+
+    return () => image.removeEventListener('error', handleError);
+  }, [src]);
+
   if (failed) {
     return <LetterFallback symbol={symbol} className={className} />;
   }
@@ -59,7 +75,7 @@ export function CryptoIcon({
     return (
       <div
         className={cn(
-          "size-7 shrink-0 animate-pulse rounded-full bg-muted",
+          'size-7 shrink-0 animate-pulse rounded-full bg-muted',
           className,
         )}
         aria-hidden
@@ -69,10 +85,10 @@ export function CryptoIcon({
 
   return (
     <img
+      ref={imageRef}
       src={src}
       alt=""
-      className={cn("size-7 shrink-0 rounded-full", className)}
-      onError={() => setFailed(true)}
+      className={cn('size-7 shrink-0 rounded-full', className)}
     />
   );
 }

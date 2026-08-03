@@ -1,29 +1,44 @@
-import * as React from "react";
-import * as SelectPrimitive from "@radix-ui/react-select";
-import { Check, ChevronDown, ChevronUp } from "lucide-react";
-import { cn } from "@/lib/utils";
+import * as SelectPrimitive from '@radix-ui/react-select';
+import { Check, ChevronDown, ChevronUp } from 'lucide-react';
+import * as React from 'react';
 
-export const Select = SelectPrimitive.Root;
-export const SelectGroup = SelectPrimitive.Group;
-export const SelectValue = SelectPrimitive.Value;
+import { cn } from '@/lib/utils';
+
+export function Select(
+  props: React.ComponentProps<typeof SelectPrimitive.Root>,
+) {
+  return <SelectPrimitive.Root {...props} />;
+}
+
+export function SelectGroup(
+  props: React.ComponentProps<typeof SelectPrimitive.Group>,
+) {
+  return <SelectPrimitive.Group {...props} />;
+}
+
+export function SelectValue(
+  props: React.ComponentProps<typeof SelectPrimitive.Value>,
+) {
+  return <SelectPrimitive.Value {...props} />;
+}
 
 export function SelectTrigger({
   className,
   children,
-  size = "default",
+  size = 'default',
   ...props
 }: React.ComponentProps<typeof SelectPrimitive.Trigger> & {
-  size?: "default" | "sm";
+  size?: 'default' | 'sm';
 }) {
   return (
     <SelectPrimitive.Trigger
       className={cn(
-        "flex w-full cursor-default items-center justify-between gap-2 rounded-md border border-border bg-muted px-3 text-[13px] text-foreground outline-none transition-colors",
-        "hover:bg-accent focus-visible:border-foreground/30",
-        "disabled:cursor-not-allowed disabled:opacity-50",
-        "data-[placeholder]:text-muted-foreground",
-        "[&>span]:line-clamp-1",
-        size === "default" ? "h-8" : "h-7 px-2.5 text-[12px]",
+        'flex w-full cursor-default items-center justify-between gap-2 rounded-md border border-border bg-muted px-3 text-[13px] text-foreground transition-colors outline-none',
+        'hover:bg-accent focus-visible:border-foreground/30',
+        'disabled:cursor-not-allowed disabled:opacity-50',
+        'data-placeholder:text-muted-foreground',
+        '[&>span]:line-clamp-1',
+        size === 'default' ? 'h-8' : 'h-7 px-2.5 text-[12px]',
         className,
       )}
       {...props}
@@ -43,7 +58,7 @@ export function SelectScrollUpButton({
   return (
     <SelectPrimitive.ScrollUpButton
       className={cn(
-        "flex cursor-default items-center justify-center py-1",
+        'flex cursor-default items-center justify-center py-1',
         className,
       )}
       {...props}
@@ -60,7 +75,7 @@ export function SelectScrollDownButton({
   return (
     <SelectPrimitive.ScrollDownButton
       className={cn(
-        "flex cursor-default items-center justify-center py-1",
+        'flex cursor-default items-center justify-center py-1',
         className,
       )}
       {...props}
@@ -73,16 +88,16 @@ export function SelectScrollDownButton({
 export function SelectContent({
   className,
   children,
-  position = "popper",
+  position = 'popper',
   ...props
 }: React.ComponentProps<typeof SelectPrimitive.Content>) {
   return (
     <SelectPrimitive.Portal>
       <SelectPrimitive.Content
         className={cn(
-          "relative z-50 max-h-72 min-w-[8rem] overflow-hidden rounded-md border border-border bg-card text-foreground",
-          position === "popper" &&
-            "data-[side=bottom]:translate-y-1 data-[side=top]:-translate-y-1",
+          'relative z-50 max-h-72 min-w-32 overflow-hidden rounded-md border border-border bg-card text-foreground',
+          position === 'popper' &&
+            'data-[side=bottom]:translate-y-1 data-[side=top]:-translate-y-1',
           className,
         )}
         position={position}
@@ -91,9 +106,9 @@ export function SelectContent({
         <SelectScrollUpButton />
         <SelectPrimitive.Viewport
           className={cn(
-            "p-1",
-            position === "popper" &&
-              "h-[var(--radix-select-trigger-height)] w-full min-w-[var(--radix-select-trigger-width)]",
+            'p-1',
+            position === 'popper' &&
+              'h-(--radix-select-trigger-height) w-full min-w-(--radix-select-trigger-width)',
           )}
         >
           {children}
@@ -111,7 +126,7 @@ export function SelectLabel({
   return (
     <SelectPrimitive.Label
       className={cn(
-        "px-2 py-1.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground",
+        'px-2 py-1.5 text-[11px] font-semibold tracking-wider text-muted-foreground uppercase',
         className,
       )}
       {...props}
@@ -127,14 +142,14 @@ export function SelectItem({
   return (
     <SelectPrimitive.Item
       className={cn(
-        "relative flex w-full cursor-default select-none items-center rounded-sm py-1.5 pe-8 ps-2 text-[13px] outline-none",
-        "focus:bg-accent focus:text-accent-foreground",
-        "data-[disabled]:pointer-events-none data-[disabled]:opacity-50",
+        'relative flex w-full cursor-default items-center rounded-sm py-1.5 ps-2 pe-8 text-[13px] outline-none select-none',
+        'focus:bg-accent focus:text-accent-foreground',
+        'data-disabled:pointer-events-none data-disabled:opacity-50',
         className,
       )}
       {...props}
     >
-      <span className="absolute end-2 flex size-3.5 items-center justify-center">
+      <span className="absolute inset-e-2 flex size-3.5 items-center justify-center">
         <SelectPrimitive.ItemIndicator>
           <Check className="size-3.5" />
         </SelectPrimitive.ItemIndicator>
@@ -150,7 +165,7 @@ export function SelectSeparator({
 }: React.ComponentProps<typeof SelectPrimitive.Separator>) {
   return (
     <SelectPrimitive.Separator
-      className={cn("-mx-1 my-1 h-px bg-border", className)}
+      className={cn('-mx-1 my-1 h-px bg-border', className)}
       {...props}
     />
   );

@@ -1,14 +1,16 @@
-import { useMemo } from "react";
-import { Skeleton } from "@/components/ui/skeleton";
-import { useAppState } from "@/core/useAppState";
-import { useLiveFeed } from "@/hooks/use-live-feed";
-import { getWeatherFeed } from "@/feeds/weatherFeed";
-import { WeatherIcon } from "./weather-icon";
+import { useMemo } from 'react';
+
+import { Skeleton } from '@/components/ui/skeleton';
+import { useAppState } from '@/core/useAppState';
+import { getWeatherFeed } from '@/feeds/weatherFeed';
+import { useLiveFeed } from '@/hooks/use-live-feed';
+
+import { WeatherIcon } from './weather-icon';
 
 function WeatherSkeleton() {
   return (
     <div
-      className="flex h-full flex-col gap-3 px-4 py-4"
+      className="flex h-full flex-col gap-3 p-4"
       aria-busy="true"
       aria-label="Loading weather"
     >
@@ -26,25 +28,24 @@ function WeatherSkeleton() {
 
 export function WeatherWidget() {
   const { data } = useAppState();
-  const city = data.weather.city;
+  const { city } = data.weather;
   const feed = useMemo(() => getWeatherFeed(city), [city]);
   const snapshot = useLiveFeed(feed);
 
-  if (snapshot.status === "connecting" && !snapshot.data) {
+  if (snapshot.status === 'connecting' && !snapshot.data) {
     return <WeatherSkeleton />;
   }
 
   if (!snapshot.data) {
     return (
-      <div className="px-4 py-4 text-[12px] text-destructive" role="alert">
-        {snapshot.error ?? "Weather unavailable"}
+      <div className="p-4 text-[12px] text-destructive" role="alert">
+        {snapshot.error ?? 'Weather unavailable'}
       </div>
     );
   }
 
   const w = snapshot.data;
-  const range =
-    w.low != null && w.high != null ? `${w.low}~${w.high}°` : null;
+  const range = w.low != null && w.high != null ? `${w.low}~${w.high}°` : null;
 
   return (
     <div className="flex h-full flex-col justify-between gap-3 px-4 py-3.5">
@@ -53,12 +54,12 @@ export function WeatherWidget() {
           <WeatherIcon code={w.code} size="lg" alt={w.condition} />
         </div>
         <div className="min-w-0 flex-1">
-          <div className="text-[40px] font-extralight leading-none tracking-tight text-foreground tabular-nums">
+          <div className="text-[40px] leading-none font-extralight tracking-tight text-foreground tabular-nums">
             {w.temperature}°
           </div>
           <div className="mt-1 truncate text-[12px] text-muted-foreground">
             {w.condition}
-            {range ? ` · ${range}` : ""}
+            {range ? ` · ${range}` : ''}
           </div>
           <div className="mt-0.5 truncate text-[13px] font-medium text-foreground/85">
             {w.city}
@@ -67,20 +68,16 @@ export function WeatherWidget() {
       </div>
 
       {w.days.length > 0 ? (
-        <div className="grid grid-cols-3 gap-1.5 rounded-xl bg-muted/80 px-2 py-2">
+        <div className="grid grid-cols-3 gap-1.5 rounded-xl bg-muted/80 p-2">
           {w.days.map((day) => (
             <div
               key={day.weekday}
               className="flex flex-col items-center gap-1 text-center"
             >
-              <span className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+              <span className="text-[10px] font-medium tracking-wide text-muted-foreground uppercase">
                 {day.weekday}
               </span>
-              <WeatherIcon
-                code={day.code}
-                night={false}
-                alt={day.condition}
-              />
+              <WeatherIcon code={day.code} night={false} alt={day.condition} />
               <span className="text-[11px] text-foreground/80 tabular-nums">
                 {day.low}/{day.high}°
               </span>

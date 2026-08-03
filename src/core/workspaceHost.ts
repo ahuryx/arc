@@ -1,10 +1,14 @@
-import { exit } from "@tauri-apps/plugin-process";
+import { getCurrentWebviewWindow } from '@tauri-apps/api/webviewWindow';
 import {
   disable as disableAutostart,
   enable as enableAutostart,
-} from "@tauri-apps/plugin-autostart";
-import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
-import { WIDGET_CATALOG } from "./widgetCatalog";
+} from '@tauri-apps/plugin-autostart';
+import { exit } from '@tauri-apps/plugin-process';
+
+import { defaultCryptoData } from '@/feeds/crypto/defaults';
+import { clamp } from '@/lib/utils';
+
+import type { SettingsTabId } from './settingsNav';
 import type {
   ArrangeSide,
   CalendarMode,
@@ -14,14 +18,18 @@ import type {
   TimeFormat,
   WidgetId,
   WorkspaceSettings,
-} from "./types";
+} from './types';
+
+import { SETTINGS_LABEL } from './constants';
 import {
   getWidgetData,
   getWorkspace,
   resetSettingsToDefaults,
   updateWidgetData,
   updateWorkspace,
-} from "./settingsStore";
+} from './settingsStore';
+import { resolveTheme } from './theme';
+import { WIDGET_CATALOG } from './widgetCatalog';
 import {
   applyThemeChrome,
   applyVisibilityFromSettings,
@@ -29,17 +37,12 @@ import {
   arrangeVisible,
   ensureAllWindows,
   flushWindowPosition,
+  setWidgetSide as managerSetWidgetSide,
   noteWindowPosition,
   openSettingsWindow,
   setKeepOnTop,
   setVisible,
-  setWidgetSide as managerSetWidgetSide,
-} from "./widgetManager";
-import { clamp } from "@/lib/utils";
-import { SETTINGS_LABEL } from "./constants";
-import type { SettingsTabId } from "./settingsNav";
-import { resolveTheme } from "./theme";
-import { defaultCryptoData } from "@/feeds/crypto/defaults";
+} from './widgetManager';
 
 /** Read-only workspace snapshot for tray / UI. */
 export function getWorkspaceSnapshot(): WorkspaceSettings {
@@ -80,6 +83,7 @@ export async function syncWindowFlags(): Promise<void> {
 
 export async function setAutoArrange(enabled: boolean): Promise<void> {
   await updateWorkspace({ autoArrange: enabled });
+
   if (enabled) {
     await arrangeVisible();
   }
@@ -93,6 +97,7 @@ export async function setArrangeGaps(
     edgeGap: clamp(edgeGap, 0, 80),
     widgetGap: clamp(widgetGap, 0, 48),
   });
+
   if (getWorkspace().autoArrange) {
     await arrangeVisible();
   }
@@ -152,7 +157,7 @@ export async function setCryptoSettings(crypto: CryptoData): Promise<void> {
     .map((row) => ({
       id: row.id,
       symbol: row.symbol.trim().toUpperCase(),
-      quote: row.quote === "toman" ? ("toman" as const) : ("usd" as const),
+      quote: row.quote === 'toman' ? ('toman' as const) : ('usd' as const),
     }));
 
   await updateWidgetData({
@@ -178,8 +183,8 @@ export async function setTheme(theme: ThemeId): Promise<void> {
 
 /** When preference is `system`, refresh native chrome to match OS. */
 export async function syncSystemThemeChrome(): Promise<void> {
-  if (getWorkspace().theme !== "system") return;
-  await applyThemeChrome(resolveTheme("system"));
+  if (getWorkspace().theme !== 'system') return;
+  await applyThemeChrome(resolveTheme('system'));
 }
 
 export async function updateNotesData(notes: NotesData): Promise<void> {
@@ -191,7 +196,7 @@ export async function updateNoteTabBody(
   tabId: string,
   body: string,
 ): Promise<void> {
-  const notes = getWidgetData().notes;
+  const { notes } = getWidgetData();
   await updateWidgetData({
     notes: {
       ...notes,
@@ -202,11 +207,7 @@ export async function updateNoteTabBody(
   });
 }
 
-export function noteWidgetPosition(
-  id: WidgetId,
-  x: number,
-  y: number,
-): void {
+export function noteWidgetPosition(id: WidgetId, x: number, y: number): void {
   noteWindowPosition(id, x, y);
 }
 
@@ -220,6 +221,7 @@ export async function openSettings(tab?: SettingsTabId): Promise<void> {
 
 export async function closeSettings(): Promise<void> {
   const win = getCurrentWebviewWindow();
+
   if (win.label === SETTINGS_LABEL) {
     await win.hide();
   }
@@ -244,11 +246,12 @@ export async function applyFirstRunDefaults(): Promise<void> {
       try {
         await enableAutostart();
       } catch (error) {
-        console.error("[host] enableAutostart failed", error);
+        console.error('[host] enableAutostart failed', error);
       }
     }
 
     const widgets = { ...workspace.widgets };
+
     for (const meta of WIDGET_CATALOG) {
       widgets[meta.id] = {
         ...widgets[meta.id],
@@ -264,8 +267,8 @@ export async function applyFirstRunDefaults(): Promise<void> {
       autoArrange: true,
       locked: true,
       keepOnTop: false,
-      startWithWindows: workspace.startWithWindows !== false,
-      theme: workspace.theme ?? "system",
+      startWithWindows: workspace.startWithWindows,
+      theme: workspace.theme,
       widgets,
     });
     return;
@@ -273,6 +276,7 @@ export async function applyFirstRunDefaults(): Promise<void> {
 
   if (!workspace.hostRecoveryV1) {
     const anyVisible = Object.values(workspace.widgets).some((w) => w.visible);
+
     if (!anyVisible) {
       await updateWorkspace({
         hostRecoveryV1: true,
@@ -289,12 +293,14 @@ export async function applyFirstRunDefaults(): Promise<void> {
   if (!getWorkspace().sideLayoutV1) {
     const current = getWorkspace();
     const widgets = { ...current.widgets };
+
     for (const meta of WIDGET_CATALOG) {
       widgets[meta.id] = {
         ...widgets[meta.id],
         side: meta.defaultSide,
       };
     }
+
     await updateWorkspace({ widgets, sideLayoutV1: true });
   }
 }

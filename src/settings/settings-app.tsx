@@ -1,15 +1,20 @@
-import { useEffect, useId, useRef, useState } from "react";
-import { getVersion } from "@tauri-apps/api/app";
-import { listen } from "@tauri-apps/api/event";
-import { openUrl } from "@tauri-apps/plugin-opener";
-import { X } from "lucide-react";
+import type { ReactNode } from 'react';
+
+import { getVersion } from '@tauri-apps/api/app';
+import { listen } from '@tauri-apps/api/event';
+import { openUrl } from '@tauri-apps/plugin-opener';
+import { X } from 'lucide-react';
+import { useEffect, useId, useRef, useState } from 'react';
+
+import type { SettingsTabId } from '@/core/settingsNav';
+
+import { CryptoSettingsPanel } from '@/components/settings/crypto-settings-panel';
 import {
   SettingsRow,
   SettingsSection,
-} from "@/components/settings/settings-section";
-import { CryptoSettingsPanel } from "@/components/settings/crypto-settings-panel";
-import { SettingsSkeleton } from "@/components/settings/settings-skeleton";
-import { Button } from "@/components/ui/button";
+} from '@/components/settings/settings-section';
+import { SettingsSkeleton } from '@/components/settings/settings-skeleton';
+import { Button } from '@/components/ui/button';
 import {
   Dialog,
   DialogContent,
@@ -18,20 +23,19 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { NumberInput } from "@/components/ui/number-input";
-import { Toggle } from "@/components/ui/toggle";
-import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
-import { useAppState } from "@/core/useAppState";
-import { WIDGET_CATALOG } from "@/core/widgetCatalog";
+} from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { NumberInput } from '@/components/ui/number-input';
+import { Toggle } from '@/components/ui/toggle';
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import {
+  parseSettingsTab,
   SETTINGS_FOCUS_TAB_EVENT,
   SETTINGS_TABS,
-  parseSettingsTab,
-  type SettingsTabId,
-} from "@/core/settingsNav";
+} from '@/core/settingsNav';
+import { useAppState } from '@/core/useAppState';
+import { WIDGET_CATALOG } from '@/core/widgetCatalog';
 import {
   closeSettings,
   quitApp,
@@ -49,18 +53,36 @@ import {
   setWeatherCity,
   setWidgetSide,
   setWidgetVisibility,
-} from "@/core/workspaceHost";
-import { cn } from "@/lib/utils";
+} from '@/core/workspaceHost';
+import { cn } from '@/lib/utils';
 
 const GAP_COMMIT_MS = 250;
-const GITHUB_URL = "https://github.com/ahuryx/arc";
-const AHURYX_URL = "https://ahuryx.com";
+const GITHUB_URL = 'https://github.com/ahuryx/arc';
+const AHURYX_URL = 'https://ahuryx.com';
 
 function initialTab(): SettingsTabId {
   return (
-    parseSettingsTab(new URLSearchParams(window.location.search).get("tab")) ??
-    "general"
+    parseSettingsTab(new URLSearchParams(window.location.search).get('tab')) ??
+    'general'
   );
+}
+
+function SettingsBody({
+  ready,
+  children,
+}: {
+  ready: boolean;
+  children: ReactNode;
+}) {
+  if (!ready) {
+    return (
+      <div className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto">
+        <SettingsSkeleton />
+      </div>
+    );
+  }
+
+  return children;
 }
 
 export default function SettingsApp() {
@@ -70,7 +92,7 @@ export default function SettingsApp() {
   const [pomoDraft, setPomoDraft] = useState(data.pomodoro);
   const [edgeDraft, setEdgeDraft] = useState(workspace.edgeGap);
   const [widgetGapDraft, setWidgetGapDraft] = useState(workspace.widgetGap);
-  const [cityMsg, setCityMsg] = useState("");
+  const [cityMsg, setCityMsg] = useState('');
   const [savingCity, setSavingCity] = useState(false);
   const [savingPomo, setSavingPomo] = useState(false);
   const [resetting, setResetting] = useState(false);
@@ -78,7 +100,7 @@ export default function SettingsApp() {
   const edgeGapId = useId();
   const widgetGapId = useId();
   const cityId = useId();
-  const gapTimer = useRef<number | undefined>(undefined);
+  const gapTimerRef = useRef<number | undefined>(undefined);
   const edgeRef = useRef(edgeDraft);
   const widgetGapRef = useRef(widgetGapDraft);
 
@@ -113,16 +135,16 @@ export default function SettingsApp() {
 
   useEffect(() => {
     return () => {
-      if (gapTimer.current != null) window.clearTimeout(gapTimer.current);
+      if (gapTimerRef.current != null) window.clearTimeout(gapTimerRef.current);
     };
   }, []);
 
   function scheduleGaps(edge: number, widgetGap: number): void {
     edgeRef.current = edge;
     widgetGapRef.current = widgetGap;
-    if (gapTimer.current != null) window.clearTimeout(gapTimer.current);
-    gapTimer.current = window.setTimeout(() => {
-      gapTimer.current = undefined;
+    if (gapTimerRef.current != null) window.clearTimeout(gapTimerRef.current);
+    gapTimerRef.current = window.setTimeout(() => {
+      gapTimerRef.current = undefined;
       void setArrangeGaps(edgeRef.current, widgetGapRef.current);
     }, GAP_COMMIT_MS);
   }
@@ -133,7 +155,7 @@ export default function SettingsApp() {
         className="flex h-8 shrink-0 items-center justify-between border-b border-border px-2.5 pe-1.5"
         data-tauri-drag-region
       >
-        <span className="truncate text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+        <span className="truncate text-[11px] font-semibold tracking-[0.12em] text-muted-foreground uppercase">
           Settings
         </span>
         <div className="flex items-center gap-0.5" data-no-drag>
@@ -151,11 +173,7 @@ export default function SettingsApp() {
         </div>
       </header>
 
-      {!ready ? (
-        <div className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto">
-          <SettingsSkeleton />
-        </div>
-      ) : (
+      <SettingsBody ready={ready}>
         <div className="flex min-h-0 flex-1">
           <nav
             className="flex w-30 shrink-0 flex-col gap-0.5 overflow-y-auto border-e border-border bg-muted/30 p-1.5"
@@ -166,12 +184,12 @@ export default function SettingsApp() {
                 key={item.id}
                 type="button"
                 className={cn(
-                  "rounded-md px-2 py-1.5 text-start text-[12px] transition-colors",
+                  'rounded-md px-2 py-1.5 text-start text-[12px] transition-colors',
                   tab === item.id
-                    ? "bg-accent font-medium text-accent-foreground"
-                    : "text-muted-foreground hover:bg-accent/60 hover:text-foreground",
+                    ? 'bg-accent font-medium text-accent-foreground'
+                    : 'text-muted-foreground hover:bg-accent/60 hover:text-foreground',
                 )}
-                aria-current={tab === item.id ? "page" : undefined}
+                aria-current={tab === item.id ? 'page' : undefined}
                 onClick={() => setTab(item.id)}
               >
                 {item.label}
@@ -180,7 +198,7 @@ export default function SettingsApp() {
           </nav>
 
           <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-3 overflow-x-hidden overflow-y-auto px-4 py-3">
-            {tab === "general" ? (
+            {tab === 'general' ? (
               <>
                 <SettingsSection title="Appearance">
                   <SettingsRow label="Theme">
@@ -190,9 +208,9 @@ export default function SettingsApp() {
                       value={workspace.theme}
                       onValueChange={(value) => {
                         if (
-                          value === "light" ||
-                          value === "dark" ||
-                          value === "system"
+                          value === 'light' ||
+                          value === 'dark' ||
+                          value === 'system'
                         ) {
                           void setTheme(value);
                         }
@@ -214,9 +232,9 @@ export default function SettingsApp() {
                         <ToggleGroup
                           type="single"
                           size="sm"
-                          value={state.side ?? "left"}
+                          value={state.side}
                           onValueChange={(value) => {
-                            if (value !== "left" && value !== "right") return;
+                            if (value !== 'left' && value !== 'right') return;
                             if (value === state.side) return;
                             void setWidgetSide(widget.id, value);
                           }}
@@ -355,7 +373,7 @@ export default function SettingsApp() {
                                 .finally(() => setResetting(false));
                             }}
                           >
-                            {resetting ? "Resetting…" : "Reset"}
+                            {resetting ? 'Resetting…' : 'Reset'}
                           </Button>
                         </DialogFooter>
                       </DialogContent>
@@ -375,15 +393,15 @@ export default function SettingsApp() {
               </>
             ) : null}
 
-            {tab === "clock" ? (
+            {tab === 'clock' ? (
               <SettingsSection title="Clock">
                 <SettingsRow label="Time format">
                   <ToggleGroup
                     type="single"
                     size="sm"
-                    value={data.clock?.timeFormat === "12" ? "12" : "24"}
+                    value={data.clock.timeFormat}
                     onValueChange={(value) => {
-                      if (value === "12" || value === "24") {
+                      if (value === '12' || value === '24') {
                         void setTimeFormat(value);
                       }
                     }}
@@ -396,18 +414,18 @@ export default function SettingsApp() {
               </SettingsSection>
             ) : null}
 
-            {tab === "calendar" ? (
+            {tab === 'calendar' ? (
               <SettingsSection title="Calendar">
                 <SettingsRow label="Shamsi calendar">
                   <Toggle
-                    checked={data.calendar.mode === "jalali"}
+                    checked={data.calendar.mode === 'jalali'}
                     onCheckedChange={(checked) =>
-                      void setCalendarMode(checked ? "jalali" : "gregorian")
+                      void setCalendarMode(checked ? 'jalali' : 'gregorian')
                     }
                     aria-label="Enable Shamsi calendar"
                   />
                 </SettingsRow>
-                {data.calendar.mode === "jalali" ? (
+                {data.calendar.mode === 'jalali' ? (
                   <p
                     className="font-fa text-[11px] text-muted-foreground"
                     dir="rtl"
@@ -424,9 +442,11 @@ export default function SettingsApp() {
               </SettingsSection>
             ) : null}
 
-            {tab === "crypto" ? <CryptoSettingsPanel value={data.crypto} /> : null}
+            {tab === 'crypto' ? (
+              <CryptoSettingsPanel value={data.crypto} />
+            ) : null}
 
-            {tab === "weather" ? (
+            {tab === 'weather' ? (
               <SettingsSection title="Weather location">
                 <div className="flex gap-2">
                   <Input
@@ -444,45 +464,50 @@ export default function SettingsApp() {
                     disabled={savingCity}
                     onClick={() => {
                       const trimmed = cityDraft.trim();
+
                       if (!trimmed) {
-                        setCityMsg("Enter a city name");
+                        setCityMsg('Enter a city name');
                         return;
                       }
+
                       setSavingCity(true);
                       void setWeatherCity(trimmed)
                         .then(() => setCityMsg(`Updated → ${trimmed}`))
-                        .catch(() => setCityMsg("Could not save city"))
+                        .catch(() => setCityMsg('Could not save city'))
                         .finally(() => setSavingCity(false));
                     }}
                   >
-                    {savingCity ? "Saving…" : "Update"}
+                    {savingCity ? 'Saving…' : 'Update'}
                   </Button>
                 </div>
                 {cityMsg ? (
-                  <p className="text-[11px] text-muted-foreground" role="status">
+                  <p
+                    className="text-[11px] text-muted-foreground"
+                    role="status"
+                  >
                     {cityMsg}
                   </p>
                 ) : null}
               </SettingsSection>
             ) : null}
 
-            {tab === "notes" ? (
+            {tab === 'notes' ? (
               <SettingsSection title="Notes">
                 <p className="text-[12.5px] leading-relaxed text-muted-foreground">
-                  Write notes in the Notes widget. Markdown formats as you type —
-                  headings, lists, links, bold, and code.
+                  Write notes in the Notes widget. Markdown formats as you type
+                  — headings, lists, links, bold, and code.
                 </p>
               </SettingsSection>
             ) : null}
 
-            {tab === "pomodoro" ? (
+            {tab === 'pomodoro' ? (
               <SettingsSection title="Pomodoro (minutes)">
                 <div className="grid grid-cols-3 gap-2">
                   {(
                     [
-                      ["work", "Focus"],
-                      ["short", "Short"],
-                      ["long", "Long"],
+                      ['work', 'Focus'],
+                      ['short', 'Short'],
+                      ['long', 'Long'],
                     ] as const
                   ).map(([key, label]) => {
                     const fieldId = `${key}-duration`;
@@ -497,7 +522,7 @@ export default function SettingsApp() {
                         <NumberInput
                           id={fieldId}
                           min={1}
-                          max={key === "work" ? 120 : 60}
+                          max={key === 'work' ? 120 : 60}
                           className="w-full"
                           value={pomoDraft[key]}
                           onValueChange={(next) =>
@@ -520,17 +545,15 @@ export default function SettingsApp() {
                     );
                   }}
                 >
-                  {savingPomo ? "Saving…" : "Save durations"}
+                  {savingPomo ? 'Saving…' : 'Save durations'}
                 </Button>
               </SettingsSection>
             ) : null}
 
-            {tab === "about" ? (
-              <AboutPanel />
-            ) : null}
+            {tab === 'about' ? <AboutPanel /> : null}
           </div>
         </div>
-      )}
+      </SettingsBody>
     </div>
   );
 }
@@ -558,16 +581,16 @@ function AboutPanel() {
           Arc
         </h2>
         <p className="text-[12px] text-muted-foreground">
-          {version ? `v${version}` : "…"} · Beta
+          {version ? `v${version}` : '…'} · Beta
         </p>
         <p className="max-w-[18rem] text-[12.5px] leading-relaxed text-muted-foreground">
-          Tray-hosted desktop widgets — clock, calendar, weather, crypto,
-          notes, and pomodoro — with a clean modern chrome. Pre-release
-          software; expect rough edges.
+          Tray-hosted desktop widgets — clock, calendar, weather, crypto, notes,
+          and pomodoro — with a clean modern chrome. Pre-release software;
+          expect rough edges.
         </p>
       </div>
       <p className="text-[12px] text-foreground/80">
-        Developed by{" "}
+        Developed by{' '}
         <button
           type="button"
           className="font-medium text-foreground underline-offset-2 hover:underline"

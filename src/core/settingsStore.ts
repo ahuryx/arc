@@ -1,22 +1,24 @@
-import { LazyStore } from "@tauri-apps/plugin-store";
-import { emit, listen } from "@tauri-apps/api/event";
-import { WIDGET_CATALOG } from "./widgetCatalog";
+import { emit, listen } from '@tauri-apps/api/event';
+import { LazyStore } from '@tauri-apps/plugin-store';
+
+import { defaultCryptoData } from '@/feeds/crypto/defaults';
+
 import type {
   AppState,
   CryptoData,
-  CryptoQuote,
   CryptoRow,
   NotesData,
   WidgetData,
   WidgetId,
   WidgetState,
   WorkspaceSettings,
-} from "./types";
-import { APP_STATE_CHANGED_EVENT } from "./types";
-import { ARRANGE_GAP, ARRANGE_MARGIN, STORE_PATH } from "./constants";
-import { defaultCryptoData } from "@/feeds/crypto/defaults";
+} from './types';
 
-function createDefaultWidgets(): WorkspaceSettings["widgets"] {
+import { ARRANGE_GAP, ARRANGE_MARGIN, STORE_PATH } from './constants';
+import { APP_STATE_CHANGED_EVENT } from './types';
+import { WIDGET_CATALOG } from './widgetCatalog';
+
+function createDefaultWidgets(): WorkspaceSettings['widgets'] {
   return Object.fromEntries(
     WIDGET_CATALOG.map((widget, index) => [
       widget.id,
@@ -27,39 +29,49 @@ function createDefaultWidgets(): WorkspaceSettings["widgets"] {
         side: widget.defaultSide,
       },
     ]),
-  ) as WorkspaceSettings["widgets"];
+  ) as WorkspaceSettings['widgets'];
 }
 
 function defaultNotes(): NotesData {
-  const id = "tab-1";
-  return { tabs: [{ id, body: "" }], active: id };
+  const id = 'tab-1';
+  return { tabs: [{ id, body: '' }], active: id };
 }
 
 function defaultCrypto(): CryptoData {
   return defaultCryptoData();
 }
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return value != null && typeof value === 'object';
+}
+
+function isNonEmptyString(value: unknown): value is string {
+  return typeof value === 'string' && value.length > 0;
+}
+
+function isCryptoRow(value: unknown): value is CryptoRow {
+  if (!isRecord(value)) return false;
+
+  return (
+    typeof value.id === 'string' &&
+    typeof value.symbol === 'string' &&
+    (value.quote === 'usd' || value.quote === 'toman')
+  );
+}
+
 function migrateCrypto(raw: unknown): CryptoData {
   const defaults = defaultCrypto();
-  if (!raw || typeof raw !== "object") {
+
+  if (!isRecord(raw)) {
     return defaults;
   }
-  const obj = raw as Partial<CryptoData> & { nobitexEnabled?: unknown };
-  const rows: CryptoRow[] = Array.isArray(obj.rows)
-    ? obj.rows
-        .filter(
-          (row): row is CryptoRow =>
-            !!row &&
-            typeof row === "object" &&
-            typeof row.id === "string" &&
-            typeof row.symbol === "string" &&
-            (row.quote === "usd" || row.quote === "toman"),
-        )
-        .map((row) => ({
-          id: row.id,
-          symbol: row.symbol.toUpperCase(),
-          quote: row.quote as CryptoQuote,
-        }))
+
+  const rows: CryptoRow[] = Array.isArray(raw.rows)
+    ? raw.rows.filter(isCryptoRow).map((row) => ({
+        id: row.id,
+        symbol: row.symbol.toUpperCase(),
+        quote: row.quote,
+      }))
     : defaults.rows;
 
   return {
@@ -71,20 +83,20 @@ export const DEFAULT_WORKSPACE: WorkspaceSettings = {
   widgets: createDefaultWidgets(),
   locked: true,
   keepOnTop: false,
-  arrangeSide: "left",
+  arrangeSide: 'left',
   autoArrange: true,
   edgeGap: ARRANGE_MARGIN,
   widgetGap: ARRANGE_GAP,
   startWithWindows: true,
   initialized: false,
-  theme: "system",
+  theme: 'system',
 };
 
 export const DEFAULT_WIDGET_DATA: WidgetData = {
   notes: defaultNotes(),
-  weather: { city: "New York" },
-  calendar: { mode: "gregorian" },
-  clock: { timeFormat: "12" },
+  weather: { city: 'New York' },
+  calendar: { mode: 'gregorian' },
+  clock: { timeFormat: '12' },
   pomodoro: { work: 25, short: 5, long: 15 },
   crypto: defaultCrypto(),
 };
@@ -106,58 +118,71 @@ function startRemoteCacheSync(): void {
   if (remoteSyncStarted) return;
   remoteSyncStarted = true;
   void listen<AppState>(APP_STATE_CHANGED_EVENT, (event) => {
-    if (!event.payload) return;
     cached = migrateStored(event.payload);
   }).catch(() => {
     /* no event bus outside Tauri */
   });
 }
 
-function mergeWidgets(
-  stored: Partial<Record<WidgetId, WidgetState>> | undefined,
-): WorkspaceSettings["widgets"] {
+function mergeWidgets(stored: unknown): WorkspaceSettings['widgets'] {
   const widgets = createDefaultWidgets();
+  const storedWidgets = isRecord(stored) ? stored : {};
+
   for (const meta of WIDGET_CATALOG) {
-    const previous = stored?.[meta.id];
-    if (previous) {
+    const previous = storedWidgets[meta.id];
+
+    if (isRecord(previous)) {
+      const fallback = widgets[meta.id];
       widgets[meta.id] = {
-        visible: Boolean(previous.visible),
-        x: typeof previous.x === "number" ? previous.x : widgets[meta.id].x,
-        y: typeof previous.y === "number" ? previous.y : widgets[meta.id].y,
+        visible:
+          typeof previous.visible === 'boolean'
+            ? previous.visible
+            : fallback.visible,
+        x: typeof previous.x === 'number' ? previous.x : fallback.x,
+        y: typeof previous.y === 'number' ? previous.y : fallback.y,
         side:
-          previous.side === "right" || previous.side === "left"
+          previous.side === 'right' || previous.side === 'left'
             ? previous.side
-            : widgets[meta.id].side,
+            : fallback.side,
       };
     }
   }
+
   return widgets;
 }
 
 function migrateNotes(raw: unknown): NotesData {
-  if (typeof raw === "string") {
+  if (typeof raw === 'string') {
     const notes = defaultNotes();
     notes.tabs[0].body = raw;
     return notes;
   }
-  if (raw && typeof raw === "object") {
-    const obj = raw as NotesData;
-    if (Array.isArray(obj.tabs) && obj.tabs.length > 0) {
+  if (isRecord(raw)) {
+    const { tabs } = raw;
+
+    if (Array.isArray(tabs) && tabs.length > 0) {
+      const validTabs = tabs.filter(isRecord);
+      if (validTabs.length === 0) return defaultNotes();
+
       return {
-        tabs: obj.tabs.map((tab, index) => ({
-          id: tab.id || `tab-${index + 1}`,
-          body: typeof tab.body === "string" ? tab.body : "",
+        tabs: validTabs.map((tab, index) => ({
+          id: isNonEmptyString(tab.id) ? tab.id : `tab-${index + 1}`,
+          body: typeof tab.body === 'string' ? tab.body : '',
         })),
-        active: obj.active || obj.tabs[0].id || "tab-1",
+        active: isNonEmptyString(raw.active)
+          ? raw.active
+          : isNonEmptyString(validTabs[0].id)
+            ? validTabs[0].id
+            : 'tab-1',
       };
     }
   }
+
   return defaultNotes();
 }
 
-/** Accepts new AppState or legacy flat shape. */
-function migrateStored(raw: unknown): AppState {
-  const defaults: AppState = {
+function createFreshDefaults(): AppState {
+  return {
     workspace: {
       ...DEFAULT_WORKSPACE,
       widgets: createDefaultWidgets(),
@@ -172,100 +197,127 @@ function migrateStored(raw: unknown): AppState {
       crypto: defaultCrypto(),
     },
   };
+}
 
-  if (!raw || typeof raw !== "object") {
-    return defaults;
-  }
+function booleanOr(value: unknown, fallback: boolean): boolean {
+  return typeof value === 'boolean' ? value : fallback;
+}
 
-  const obj = raw as Record<string, unknown>;
+function numberOr(value: unknown, fallback: number): number {
+  const numeric = Number(value);
+  return Number.isFinite(numeric) && numeric !== 0 ? numeric : fallback;
+}
 
-  // New shape
-  if (obj.workspace && obj.data) {
-    const workspace = obj.workspace as Partial<WorkspaceSettings>;
-    const data = obj.data as Partial<WidgetData>;
-    return {
-      workspace: {
-        ...defaults.workspace,
-        ...workspace,
-        widgets: mergeWidgets(workspace.widgets),
-        autoArrange:
-          typeof workspace.autoArrange === "boolean"
-            ? workspace.autoArrange
-            : defaults.workspace.autoArrange,
-        edgeGap:
-          typeof workspace.edgeGap === "number"
-            ? workspace.edgeGap
-            : defaults.workspace.edgeGap,
-        widgetGap:
-          typeof workspace.widgetGap === "number"
-            ? workspace.widgetGap
-            : defaults.workspace.widgetGap,
-        theme:
-          workspace.theme === "light" ||
-          workspace.theme === "dark" ||
-          workspace.theme === "system"
-            ? workspace.theme
-            : defaults.workspace.theme,
-      },
-      data: {
-        notes: migrateNotes(data.notes),
-        weather: {
-          city:
-            typeof data.weather?.city === "string"
-              ? data.weather.city
-              : defaults.data.weather.city,
-        },
-        calendar: {
-          mode: data.calendar?.mode === "jalali" ? "jalali" : "gregorian",
-        },
-        clock: {
-          timeFormat:
-            data.clock?.timeFormat === "12" || data.clock?.timeFormat === "24"
-              ? data.clock.timeFormat
-              : defaults.data.clock.timeFormat,
-        },
-        pomodoro: {
-          work: Number(data.pomodoro?.work) || defaults.data.pomodoro.work,
-          short: Number(data.pomodoro?.short) || defaults.data.pomodoro.short,
-          long: Number(data.pomodoro?.long) || defaults.data.pomodoro.long,
-        },
-        crypto: migrateCrypto(data.crypto),
-      },
-    };
-  }
+function migrateWorkspace(
+  raw: Record<string, unknown>,
+  defaults: WorkspaceSettings,
+): WorkspaceSettings {
+  const theme =
+    raw.theme === 'light' || raw.theme === 'dark' || raw.theme === 'system'
+      ? raw.theme
+      : defaults.theme;
+  const arrangeSide = raw.arrangeSide === 'right' ? 'right' : 'left';
 
-  // Legacy flat shape
-  const legacy = obj as Record<string, unknown> & {
-    widgets?: Partial<Record<WidgetId, WidgetState>>;
-    weatherCity?: string;
-    notes?: unknown;
+  return {
+    widgets: mergeWidgets(raw.widgets),
+    locked: booleanOr(raw.locked, defaults.locked),
+    keepOnTop: booleanOr(raw.keepOnTop, defaults.keepOnTop),
+    arrangeSide,
+    autoArrange: booleanOr(raw.autoArrange, defaults.autoArrange),
+    edgeGap: typeof raw.edgeGap === 'number' ? raw.edgeGap : defaults.edgeGap,
+    widgetGap:
+      typeof raw.widgetGap === 'number' ? raw.widgetGap : defaults.widgetGap,
+    startWithWindows: booleanOr(
+      raw.startWithWindows,
+      defaults.startWithWindows,
+    ),
+    initialized: booleanOr(raw.initialized, defaults.initialized),
+    hostRecoveryV1: booleanOr(
+      raw.hostRecoveryV1,
+      defaults.hostRecoveryV1 ?? false,
+    ),
+    sideLayoutV1: booleanOr(raw.sideLayoutV1, defaults.sideLayoutV1 ?? false),
+    theme,
   };
+}
 
+function migrateWidgetData(
+  raw: Record<string, unknown>,
+  defaults: WidgetData,
+): WidgetData {
+  const weather = isRecord(raw.weather) ? raw.weather : {};
+  const calendar = isRecord(raw.calendar) ? raw.calendar : {};
+  const clock = isRecord(raw.clock) ? raw.clock : {};
+  const pomodoro = isRecord(raw.pomodoro) ? raw.pomodoro : {};
+
+  return {
+    notes: migrateNotes(raw.notes),
+    weather: {
+      city:
+        typeof weather.city === 'string' ? weather.city : defaults.weather.city,
+    },
+    calendar: {
+      mode: calendar.mode === 'jalali' ? 'jalali' : 'gregorian',
+    },
+    clock: {
+      timeFormat:
+        clock.timeFormat === '12' || clock.timeFormat === '24'
+          ? clock.timeFormat
+          : defaults.clock.timeFormat,
+    },
+    pomodoro: {
+      work: numberOr(pomodoro.work, defaults.pomodoro.work),
+      short: numberOr(pomodoro.short, defaults.pomodoro.short),
+      long: numberOr(pomodoro.long, defaults.pomodoro.long),
+    },
+    crypto: migrateCrypto(raw.crypto),
+  };
+}
+
+function migrateLegacy(
+  raw: Record<string, unknown>,
+  defaults: AppState,
+): AppState {
   return {
     workspace: {
       ...defaults.workspace,
-      locked: Boolean(legacy.locked),
-      keepOnTop: legacy.keepOnTop !== false,
-      arrangeSide: legacy.arrangeSide === "right" ? "right" : "left",
-      startWithWindows: legacy.startWithWindows !== false,
-      initialized: Boolean(legacy.initialized),
-      hostRecoveryV1: Boolean(legacy.hostRecoveryV1),
-      widgets: mergeWidgets(legacy.widgets),
+      locked: raw.locked === true,
+      keepOnTop: raw.keepOnTop !== false,
+      arrangeSide: raw.arrangeSide === 'right' ? 'right' : 'left',
+      startWithWindows: raw.startWithWindows !== false,
+      initialized: raw.initialized === true,
+      hostRecoveryV1: raw.hostRecoveryV1 === true,
+      widgets: mergeWidgets(raw.widgets),
     },
     data: {
-      notes: migrateNotes(legacy.notes),
+      ...defaults.data,
+      notes: migrateNotes(raw.notes),
       weather: {
         city:
-          typeof legacy.weatherCity === "string"
-            ? legacy.weatherCity
+          typeof raw.weatherCity === 'string'
+            ? raw.weatherCity
             : defaults.data.weather.city,
       },
-      calendar: { ...defaults.data.calendar },
-      clock: { ...defaults.data.clock },
-      pomodoro: { ...defaults.data.pomodoro },
-      crypto: defaultCrypto(),
     },
   };
+}
+
+/** Accepts new AppState or legacy flat shape. */
+function migrateStored(raw: unknown): AppState {
+  const defaults = createFreshDefaults();
+
+  if (!isRecord(raw)) {
+    return defaults;
+  }
+
+  if (isRecord(raw.workspace) && isRecord(raw.data)) {
+    return {
+      workspace: migrateWorkspace(raw.workspace, defaults.workspace),
+      data: migrateWidgetData(raw.data, defaults.data),
+    };
+  }
+
+  return migrateLegacy(raw, defaults);
 }
 
 async function persist(): Promise<void> {
@@ -278,10 +330,11 @@ async function persist(): Promise<void> {
   );
 
   try {
-    await store.set("app", snapshot);
+    await store.set('app', snapshot);
   } catch (error) {
-    console.error("[store] persist failed", error);
+    console.error('[store] persist failed', error);
   }
+
   try {
     await emit(APP_STATE_CHANGED_EVENT, snapshot);
   } catch {
@@ -291,7 +344,7 @@ async function persist(): Promise<void> {
 
 export async function loadSettings(): Promise<AppState> {
   await store.init();
-  const stored = await store.get<unknown>("app");
+  const stored = await store.get<unknown>('app');
   cached = migrateStored(stored);
   startRemoteCacheSync();
   return getState();
@@ -372,7 +425,7 @@ export async function updateWidgetData(
         ? migrateCrypto({
             ...cached.data.crypto,
             ...patch.crypto,
-            rows: patch.crypto.rows ?? cached.data.crypto.rows,
+            rows: patch.crypto.rows,
           })
         : cached.data.crypto,
     },

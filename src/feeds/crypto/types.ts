@@ -1,4 +1,4 @@
-import type { CryptoQuote, CryptoRow } from "@/core/types";
+import type { CryptoQuote, CryptoRow } from '@/core/types';
 
 export type Quote = CryptoQuote;
 

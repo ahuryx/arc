@@ -1,10 +1,11 @@
-import { useEffect, useReducer } from "react";
-import { Button } from "@/components/ui/button";
-import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
-import { useAppState } from "@/core/useAppState";
-import { cn } from "@/lib/utils";
+import { useEffect, useReducer } from 'react';
 
-type Phase = "work" | "short" | "long";
+import { Button } from '@/components/ui/button';
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
+import { useAppState } from '@/core/useAppState';
+import { cn } from '@/lib/utils';
+
+type Phase = 'long' | 'short' | 'work';
 
 interface TimerState {
   phase: Phase;
@@ -14,55 +15,61 @@ interface TimerState {
 }
 
 type TimerAction =
-  | { type: "tick"; work: number; short: number; long: number }
-  | { type: "toggle" }
-  | { type: "reset"; work: number }
-  | { type: "setPhase"; phase: Phase; seconds: number }
-  | { type: "syncDuration"; seconds: number };
+  | { type: 'reset'; work: number }
+  | { type: 'setPhase'; phase: Phase; seconds: number }
+  | { type: 'syncDuration'; seconds: number }
+  | { type: 'tick'; work: number; short: number; long: number }
+  | { type: 'toggle' };
 
 function reducer(state: TimerState, action: TimerAction): TimerState {
   switch (action.type) {
-    case "toggle":
+    case 'toggle':
       return { ...state, running: !state.running };
-    case "reset":
+
+    case 'reset':
       return {
-        phase: "work",
+        phase: 'work',
         remaining: action.work,
         running: false,
         completed: state.completed,
       };
-    case "setPhase":
+
+    case 'setPhase':
       return {
         ...state,
         phase: action.phase,
         remaining: action.seconds,
         running: false,
       };
-    case "syncDuration":
+
+    case 'syncDuration':
       if (state.running || state.remaining === action.seconds) return state;
       return { ...state, remaining: action.seconds };
-    case "tick": {
+
+    case 'tick': {
       if (!state.running) return state;
       if (state.remaining > 1) {
         return { ...state, remaining: state.remaining - 1 };
       }
-      if (state.phase === "work") {
+      if (state.phase === 'work') {
         const nextCompleted = state.completed + 1;
         const longBreak = nextCompleted % 4 === 0;
         return {
-          phase: longBreak ? "long" : "short",
+          phase: longBreak ? 'long' : 'short',
           remaining: (longBreak ? action.long : action.short) * 60,
           running: true,
           completed: nextCompleted,
         };
       }
+
       return {
-        phase: "work",
+        phase: 'work',
         remaining: action.work * 60,
         running: true,
         completed: state.completed,
       };
     }
+
     default:
       return state;
   }
@@ -71,8 +78,8 @@ function reducer(state: TimerState, action: TimerAction): TimerState {
 function formatCountdown(totalSeconds: number): string {
   const minutes = Math.floor(totalSeconds / 60)
     .toString()
-    .padStart(2, "0");
-  const seconds = (totalSeconds % 60).toString().padStart(2, "0");
+    .padStart(2, '0');
+  const seconds = (totalSeconds % 60).toString().padStart(2, '0');
   return `${minutes}:${seconds}`;
 }
 
@@ -81,7 +88,7 @@ export function PomodoroWidget() {
   const { data } = useAppState();
   const { work, short, long } = data.pomodoro;
   const [state, dispatch] = useReducer(reducer, {
-    phase: "work" as Phase,
+    phase: 'work',
     remaining: work * 60,
     running: false,
     completed: 0,
@@ -90,7 +97,7 @@ export function PomodoroWidget() {
   useEffect(() => {
     if (!state.running) return;
     const id = window.setInterval(
-      () => dispatch({ type: "tick", work, short, long }),
+      () => dispatch({ type: 'tick', work, short, long }),
       1000,
     );
     return () => window.clearInterval(id);
@@ -100,21 +107,22 @@ export function PomodoroWidget() {
   // including it re-fires on Pause and resets the countdown via syncDuration.
   useEffect(() => {
     const mins =
-      state.phase === "work" ? work : state.phase === "short" ? short : long;
-    dispatch({ type: "syncDuration", seconds: mins * 60 });
+      state.phase === 'work' ? work : state.phase === 'short' ? short : long;
+    dispatch({ type: 'syncDuration', seconds: mins * 60 });
   }, [work, short, long, state.phase]);
 
   return (
-    <div className="flex h-full flex-col items-center justify-between gap-3 px-4 py-4">
+    <div className="flex h-full flex-col items-center justify-between gap-3 p-4">
       <ToggleGroup
         type="single"
         size="sm"
         className="w-full"
         value={state.phase}
         onValueChange={(value) => {
-          if (value === "work" || value === "short" || value === "long") {
-            const mins = value === "work" ? work : value === "short" ? short : long;
-            dispatch({ type: "setPhase", phase: value, seconds: mins * 60 });
+          if (value === 'work' || value === 'short' || value === 'long') {
+            const mins =
+              value === 'work' ? work : value === 'short' ? short : long;
+            dispatch({ type: 'setPhase', phase: value, seconds: mins * 60 });
           }
         }}
       >
@@ -130,7 +138,7 @@ export function PomodoroWidget() {
       </ToggleGroup>
 
       <div className="flex flex-col items-center gap-2.5">
-        <div className="text-[44px] font-extralight leading-none tracking-tight text-foreground tabular-nums">
+        <div className="text-[44px] leading-none font-extralight tracking-tight text-foreground tabular-nums">
           {formatCountdown(state.remaining)}
         </div>
         <div className="flex gap-1.5">
@@ -138,8 +146,10 @@ export function PomodoroWidget() {
             <span
               key={i}
               className={cn(
-                "size-1.5 rounded-full",
-                i < state.completed % 4 ? "bg-foreground/80" : "bg-foreground/20",
+                'size-1.5 rounded-full',
+                i < state.completed % 4
+                  ? 'bg-foreground/80'
+                  : 'bg-foreground/20',
               )}
             />
           ))}
@@ -151,14 +161,14 @@ export function PomodoroWidget() {
           type="button"
           variant="default"
           className="flex-1"
-          onClick={() => dispatch({ type: "toggle" })}
+          onClick={() => dispatch({ type: 'toggle' })}
         >
-          {state.running ? "Pause" : "Start"}
+          {state.running ? 'Pause' : 'Start'}
         </Button>
         <Button
           type="button"
           variant="outline"
-          onClick={() => dispatch({ type: "reset", work: work * 60 })}
+          onClick={() => dispatch({ type: 'reset', work: work * 60 })}
         >
           Reset
         </Button>

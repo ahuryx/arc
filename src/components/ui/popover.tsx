@@ -1,6 +1,7 @@
-import * as React from "react";
-import * as PopoverPrimitive from "@radix-ui/react-popover";
-import { cn } from "@/lib/utils";
+import * as PopoverPrimitive from '@radix-ui/react-popover';
+import * as React from 'react';
+
+import { cn } from '@/lib/utils';
 
 export function Popover({
   ...props
@@ -16,7 +17,7 @@ export function PopoverTrigger({
 
 export function PopoverContent({
   className,
-  align = "end",
+  align = 'end',
   sideOffset = 8,
   ...props
 }: React.ComponentProps<typeof PopoverPrimitive.Content>) {
@@ -26,7 +27,7 @@ export function PopoverContent({
         align={align}
         sideOffset={sideOffset}
         className={cn(
-          "z-50 w-64 rounded-lg border border-border bg-card p-3 text-card-foreground shadow-md outline-none",
+          'z-50 w-64 rounded-lg border border-border bg-card p-3 text-card-foreground shadow-md outline-none',
           className,
         )}
         {...props}

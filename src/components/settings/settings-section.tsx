@@ -1,5 +1,6 @@
-import type { ReactNode } from "react";
-import { cn } from "@/lib/utils";
+import type { ReactNode } from 'react';
+
+import { cn } from '@/lib/utils';
 
 export function SettingsSection({
   title,
@@ -13,11 +14,11 @@ export function SettingsSection({
   return (
     <section
       className={cn(
-        "flex flex-col gap-2 rounded-lg border border-border bg-muted/50 p-3",
+        'flex flex-col gap-2 rounded-lg border border-border bg-muted/50 p-3',
         className,
       )}
     >
-      <h2 className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+      <h2 className="text-[10px] font-semibold tracking-[0.16em] text-muted-foreground uppercase">
         {title}
       </h2>
       <div className="flex flex-col gap-1">{children}</div>
@@ -39,7 +40,7 @@ export function SettingsRow({
   return (
     <div
       className={cn(
-        "flex min-h-9 items-center justify-between gap-3 py-1",
+        'flex min-h-9 items-center justify-between gap-3 py-1',
         className,
       )}
     >

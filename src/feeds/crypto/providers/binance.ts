@@ -1,4 +1,4 @@
-import type { UsdQuote } from "../types";
+import type { UsdQuote } from '../types';
 
 function num(v: unknown): number | null {
   const n = parseFloat(String(v));
@@ -11,17 +11,15 @@ function num(v: unknown): number | null {
  */
 export async function fetchBinanceUsd(
   symbols: string[],
-): Promise<Record<string, UsdQuote>> {
+): Promise<Partial<Record<string, UsdQuote>>> {
   const upper = symbols.map((s) => s.toUpperCase());
-  const result: Record<string, UsdQuote> = {};
+  const result: Partial<Record<string, UsdQuote>> = {};
 
-  if (upper.includes("USDT")) {
+  if (upper.includes('USDT')) {
     result.USDT = { price: 1, change: 0 };
   }
 
-  const pairs = upper
-    .filter((s) => s !== "USDT")
-    .map((s) => `${s}USDT`);
+  const pairs = upper.filter((s) => s !== 'USDT').map((s) => `${s}USDT`);
 
   if (!pairs.length) {
     return result;
@@ -29,26 +27,27 @@ export async function fetchBinanceUsd(
 
   const url = `https://api.binance.com/api/v3/ticker/24hr?symbols=${encodeURIComponent(JSON.stringify(pairs))}`;
   const res = await fetch(url, {
-    headers: { Accept: "application/json" },
+    headers: { Accept: 'application/json' },
     signal: AbortSignal.timeout(12000),
   });
+
   if (!res.ok) {
     throw new Error(`Binance HTTP ${res.status}`);
   }
 
-  const json = (await res.json()) as Array<{
+  const json = (await res.json()) as {
     symbol?: string;
     lastPrice?: string;
     priceChangePercent?: string;
-  }>;
+  }[];
 
   if (!Array.isArray(json)) {
-    throw new Error("Binance bad payload");
+    throw new Error('Binance bad payload');
   }
 
   for (const row of json) {
-    const pair = String(row.symbol ?? "");
-    if (!pair.endsWith("USDT")) continue;
+    const pair = row.symbol ?? '';
+    if (!pair.endsWith('USDT')) continue;
     const sym = pair.slice(0, -4);
     const price = num(row.lastPrice);
     if (price == null) continue;
@@ -59,8 +58,9 @@ export async function fetchBinanceUsd(
   }
 
   const missing = upper.filter((s) => !(s in result));
+
   if (missing.length === upper.length) {
-    throw new Error("Binance returned no prices");
+    throw new Error('Binance returned no prices');
   }
 
   return result;

@@ -1,4 +1,4 @@
-import type { ArrangeSide, WidgetId } from "./types";
+import type { ArrangeSide, WidgetId } from './types';
 
 /** Widget metadata only — no React (controller-safe). */
 export interface WidgetMeta {
@@ -18,46 +18,46 @@ export interface WidgetMeta {
  */
 export const WIDGET_CATALOG: WidgetMeta[] = [
   {
-    id: "clock",
-    label: "widget-clock",
-    title: "Clock",
+    id: 'clock',
+    label: 'widget-clock',
+    title: 'Clock',
     height: 128,
-    defaultSide: "left",
+    defaultSide: 'left',
   },
   {
-    id: "calendar",
-    label: "widget-calendar",
-    title: "Calendar",
+    id: 'calendar',
+    label: 'widget-calendar',
+    title: 'Calendar',
     height: 260,
-    defaultSide: "left",
+    defaultSide: 'left',
   },
   {
-    id: "crypto",
-    label: "widget-crypto",
-    title: "Crypto",
+    id: 'crypto',
+    label: 'widget-crypto',
+    title: 'Crypto',
     height: 460,
-    defaultSide: "left",
+    defaultSide: 'left',
   },
   {
-    id: "weather",
-    label: "widget-weather",
-    title: "Weather",
+    id: 'weather',
+    label: 'widget-weather',
+    title: 'Weather',
     height: 208,
-    defaultSide: "right",
+    defaultSide: 'right',
   },
   {
-    id: "notes",
-    label: "widget-notes",
-    title: "Notes",
+    id: 'notes',
+    label: 'widget-notes',
+    title: 'Notes',
     height: 268,
-    defaultSide: "right",
+    defaultSide: 'right',
   },
   {
-    id: "pomodoro",
-    label: "widget-pomodoro",
-    title: "Pomodoro",
+    id: 'pomodoro',
+    label: 'widget-pomodoro',
+    title: 'Pomodoro',
     height: 236,
-    defaultSide: "right",
+    defaultSide: 'right',
   },
 ];
 
