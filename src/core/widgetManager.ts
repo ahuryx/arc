@@ -14,7 +14,7 @@ import {
   SETTINGS_HEIGHT,
   SETTINGS_LABEL,
   SETTINGS_WIDTH,
-  WIDGET_CHROME_HEIGHT,
+  WIDGET_HEADER_HEIGHT,
   WIDGET_WIDTH,
 } from './constants';
 import { SETTINGS_FOCUS_TAB_EVENT } from './settingsNav';
@@ -34,22 +34,22 @@ import {
 
 const WINDOW_CREATE_TIMEOUT_MS = 10_000;
 
-const CHROME_RGB: Record<ResolvedTheme, [number, number, number, number]> = {
+const WINDOW_BACKGROUND_RGB: Record<ResolvedTheme, [number, number, number, number]> = {
   light: [244, 244, 245, 255],
   dark: [14, 14, 16, 255],
 };
 
-/** Opaque window chrome; color follows resolved theme. */
+/** Opaque window background; color follows the resolved theme. */
 function windowOptions(theme: ResolvedTheme = 'dark') {
   return {
     transparent: false,
     decorations: false,
     shadow: true,
-    backgroundColor: CHROME_RGB[theme],
+    backgroundColor: WINDOW_BACKGROUND_RGB[theme],
   };
 }
 
-function currentChromeTheme(): ResolvedTheme {
+function currentWindowTheme(): ResolvedTheme {
   return resolveTheme(getWorkspace().theme);
 }
 
@@ -98,7 +98,7 @@ export async function getWidgetWindow(
 
 export async function ensureWindow(id: WidgetId): Promise<WebviewWindow> {
   const widget = WIDGET_META_BY_ID[id];
-  const height = widget.height + WIDGET_CHROME_HEIGHT;
+  const height = widget.height + WIDGET_HEADER_HEIGHT;
   const existing = await WebviewWindow.getByLabel(widget.label);
 
   if (existing) {
@@ -116,7 +116,7 @@ export async function ensureWindow(id: WidgetId): Promise<WebviewWindow> {
     visible: false,
     alwaysOnTop: getWorkspace().keepOnTop,
     focus: false,
-    ...windowOptions(currentChromeTheme()),
+    ...windowOptions(currentWindowTheme()),
   });
 
   await waitForWebviewCreated(win, widget.label);
@@ -149,7 +149,7 @@ export async function openSettingsWindow(tab?: SettingsTabId): Promise<void> {
     visible: false,
     alwaysOnTop: true,
     focus: true,
-    ...windowOptions(currentChromeTheme()),
+    ...windowOptions(currentWindowTheme()),
   });
 
   await waitForWebviewCreated(win, SETTINGS_LABEL);
@@ -235,9 +235,9 @@ export async function setKeepOnTop(enabled: boolean): Promise<void> {
   );
 }
 
-/** Update native chrome color on existing windows after theme change. */
-export async function applyThemeChrome(theme: ResolvedTheme): Promise<void> {
-  const color = CHROME_RGB[theme];
+/** Update native window backgrounds after a theme change. */
+export async function applyThemeWindowAppearance(theme: ResolvedTheme): Promise<void> {
+  const color = WINDOW_BACKGROUND_RGB[theme];
   const windows = await getAllWebviewWindows();
 
   await Promise.all(
@@ -321,7 +321,7 @@ export async function arrangeVisible(): Promise<void> {
         continue;
       }
 
-      const height = (widget.height + WIDGET_CHROME_HEIGHT) * scale;
+      const height = (widget.height + WIDGET_HEADER_HEIGHT) * scale;
 
       if (y + height > maxY && y > workArea.position.y + margin) {
         col += 1;

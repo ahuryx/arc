@@ -31,7 +31,7 @@ import {
 import { resolveTheme } from './theme';
 import { WIDGET_CATALOG } from './widgetCatalog';
 import {
-  applyThemeChrome,
+  applyThemeWindowAppearance,
   applyVisibilityFromSettings,
   applyWindowFlags,
   arrangeVisible,
@@ -173,18 +173,18 @@ export async function resetToDefaults(): Promise<void> {
   await applyFirstRunDefaults();
   await syncWindowsFromWorkspace();
   await arrangeVisible();
-  await applyThemeChrome(resolveTheme(getWorkspace().theme));
+  await applyThemeWindowAppearance(resolveTheme(getWorkspace().theme));
 }
 
 export async function setTheme(theme: ThemeId): Promise<void> {
   await updateWorkspace({ theme });
-  await applyThemeChrome(resolveTheme(theme));
+  await applyThemeWindowAppearance(resolveTheme(theme));
 }
 
-/** When preference is `system`, refresh native chrome to match OS. */
-export async function syncSystemThemeChrome(): Promise<void> {
+/** When preference is `system`, refresh native window appearance to match OS. */
+export async function syncSystemThemeWindowAppearance(): Promise<void> {
   if (getWorkspace().theme !== 'system') return;
-  await applyThemeChrome(resolveTheme('system'));
+  await applyThemeWindowAppearance(resolveTheme('system'));
 }
 
 export async function updateNotesData(notes: NotesData): Promise<void> {

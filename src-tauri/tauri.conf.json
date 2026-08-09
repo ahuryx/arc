@@ -1,8 +1,8 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "widget-app",
-  "version": "0.2.0-beta.0",
-  "identifier": "com.ahuryx.widget-app",
+  "productName": "arc",
+  "version": "0.2.0",
+  "identifier": "com.ahuryx.arc",
   "build": {
     "beforeDevCommand": "pnpm dev",
     "devUrl": "http://localhost:3010",
@@ -13,7 +13,7 @@
     "windows": [
       {
         "label": "controller",
-        "title": "widget-app",
+        "title": "arc",
         "url": "index.html?role=controller",
         "visible": false,
         "width": 1,

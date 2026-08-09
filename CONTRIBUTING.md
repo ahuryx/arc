@@ -14,7 +14,7 @@ contributing, you agree to uphold it.
   [GitHub Issues](https://github.com/ahuryx/arc/issues)
 - Improve docs (README, CONTRIBUTING, comments that clarify domain terms)
 - Fix bugs or polish existing widgets
-- Add carefully scoped features that fit the tray-hosted widget model
+- Add carefully scoped features that fit the desktop widget model
 
 Before large work, open an issue so we can align on design. Domain terms live in
 [CONTEXT.md](CONTEXT.md) — prefer that vocabulary in PRs and discussions.

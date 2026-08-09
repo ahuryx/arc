@@ -1,7 +1,7 @@
 # Arc
 
-Tray-hosted desktop widgets — clock, calendar, weather, crypto, notes, and
-pomodoro — with a clean modern chrome.
+Stay on top of time, weather, markets, notes, and focus with a collection of
+desktop widgets.
 
 Cross-platform desktop app for **Windows**, **macOS**, and **Linux**, built with
 [Tauri 2](https://tauri.app/), [React](https://react.dev/), and

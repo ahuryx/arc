@@ -5,7 +5,7 @@ export interface WidgetMeta {
   id: WidgetId;
   label: string;
   title: string;
-  /** Content area height; window chrome added in widgetManager. */
+  /** Content area height; widget header added in widgetManager. */
   height: number;
   /** Default arrange column. */
   defaultSide: ArrangeSide;

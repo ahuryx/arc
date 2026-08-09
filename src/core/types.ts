@@ -31,7 +31,7 @@ export interface WorkspaceSettings {
   hostRecoveryV1?: boolean;
   /** One-shot: catalog default left/right columns. */
   sideLayoutV1?: boolean;
-  /** App chrome theme preference (Workspace-owned). */
+  /** App theme preference (Workspace-owned). */
   theme: ThemeId;
 }
 

@@ -584,9 +584,9 @@ function AboutPanel() {
           {version ? `v${version}` : '…'} · Beta
         </p>
         <p className="max-w-[18rem] text-[12.5px] leading-relaxed text-muted-foreground">
-          Tray-hosted desktop widgets — clock, calendar, weather, crypto, notes,
-          and pomodoro — with a clean modern chrome. Pre-release software;
-          expect rough edges.
+          Stay on top of time, weather, markets, notes, and focus with a
+          collection of desktop widgets. Pre-release software; expect rough
+          edges.
         </p>
       </div>
       <p className="text-[12px] text-foreground/80">

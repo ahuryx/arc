@@ -16,12 +16,12 @@ import {
   setAutostart,
   setKeepOnTopSetting,
   setLocked,
-  syncSystemThemeChrome,
+  syncSystemThemeWindowAppearance,
   syncWindowFlags,
   toggleWidgetVisibility,
 } from './workspaceHost';
 
-const TRAY_ID = 'widget-app-tray';
+const TRAY_ID = 'arc-tray';
 
 let trayInstance: TrayIcon | null = null;
 let trayMenu: Menu | null = null;
@@ -120,7 +120,7 @@ async function refreshTrayMenu(): Promise<void> {
 async function onStateChanged(): Promise<void> {
   await refreshTrayMenu();
   await syncWindowFlags();
-  await syncSystemThemeChrome();
+  await syncSystemThemeWindowAppearance();
 }
 
 const STATE_SYNC_MS = 150;
@@ -187,7 +187,7 @@ export function initTray(): Promise<void> {
 
     unwatchSystem?.();
     unwatchSystem = watchSystemTheme(() => {
-      void syncSystemThemeChrome();
+      void syncSystemThemeWindowAppearance();
     });
   })();
 

@@ -156,7 +156,7 @@
     color-scheme: dark;
   }
 
-  /* Kill browser chrome — desktop app, not a webpage */
+  /* Use the app's typography and suppress mobile tap highlights. */
   input,
   textarea,
   button,

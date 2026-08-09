@@ -21,7 +21,7 @@ Pre-release (beta). Not a stable v1 — expect bugs and breaking changes.
 ### Added
 
 - Initial open-source release of Arc
-- Tray-hosted desktop widgets: Clock, Calendar, Crypto, Weather, Notes, Pomodoro
+- Desktop widgets: Clock, Calendar, Crypto, Weather, Notes, Pomodoro
 - Workspace settings: theme, arrange, keep-on-top, lock, autostart
 - Optional Jalali calendar / Persian locale support
 

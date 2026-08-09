@@ -1,6 +1,6 @@
 # Widget App — domain language
 
-Tray-hosted desktop widgets with Win11 chrome. Tauri 2 host; React widget UIs.
+Desktop widgets powered by a Tauri 2 host and React user interfaces.
 
 ## Terms
 
@@ -10,9 +10,9 @@ Tray-hosted desktop widgets with Win11 chrome. Tauri 2 host; React widget UIs.
 | **Workspace**             | Shell prefs: visibility, positions, lock, keep-on-top, arrange, autostart, **theme**                           |
 | **Widget data**           | Content prefs: notes tabs, weather city, calendar mode, pomodoro durations                                     |
 | **WorkspaceHost**         | Deep module for tray + settings + widget lifecycle actions                                                     |
-| **Theme**                 | Workspace-owned `dark` \| `light` \| `system`; CSS `.dark` class + native chrome follow resolved OS/preference |
+| **Theme**                 | Workspace-owned `dark` \| `light` \| `system`; CSS `.dark` class + native window appearance follow resolved OS/preference |
 | **Locale / CalendarMode** | Default English + Gregorian; optional Jalali (شمسی) via Settings — FA text uses Vazirmatn                      |
-| **GlassSurface**          | Transparent window + acrylic/mica effects + CSS tint (aspirational; runtime is solid chrome today)             |
+| **GlassSurface**          | Transparent window + acrylic/mica effects + CSS tint (aspirational; runtime uses solid native window surfaces today) |
 | **LiveFeed**              | Polling snapshot stream (`subscribe` / `getSnapshot`) for crypto & weather                                     |
 | **Catalog**               | Widget metadata only (controller-safe; no React); owns fitted content heights                                  |
 | **Registry**              | Catalog + React components (widget webviews only)                                                              |
@@ -30,5 +30,5 @@ Tray-hosted desktop widgets with Win11 chrome. Tauri 2 host; React widget UIs.
 - Widget content persists via `updateWidgetData` / host helpers; layout via
   `updateWorkspace` / `updateWidgetState`
 - Theme lives on **Workspace**, not Widget data; host applies CSS + native
-  chrome
+  window appearance
 - `settingsStore` / `widgetManager` = host implementation only
