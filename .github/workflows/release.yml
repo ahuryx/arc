@@ -110,8 +110,9 @@ jobs:
             gh release create "$TAG" "${release_args[@]}"
           fi
 
-          release_id="$(gh api "repos/${GITHUB_REPOSITORY}/releases/tags/${TAG}" --jq '.id')"
-          release_draft="$(gh api "repos/${GITHUB_REPOSITORY}/releases/tags/${TAG}" --jq '.draft')"
+          # Draft releases 404 on /releases/tags/{tag}; gh release view works.
+          release_id="$(gh release view "$TAG" --json databaseId --jq .databaseId)"
+          release_draft="$(gh release view "$TAG" --json isDraft --jq .isDraft)"
           echo "release_id=$release_id" >> "$GITHUB_OUTPUT"
           echo "release_draft=$release_draft" >> "$GITHUB_OUTPUT"
 
