@@ -178,27 +178,14 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
 
-      - name: Configure macOS signing fallback
+      # Empty APPLE_CERTIFICATE still triggers `security import`; omit vars until real certs exist.
+      - name: Disable macOS code signing
         if: startsWith(matrix.platform, 'macos-')
-        shell: bash
-        env:
-          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
-          APPLE_SIGNING_IDENTITY_SECRET: ${{ secrets.APPLE_SIGNING_IDENTITY }}
-        run: |
-          if [[ -z "$APPLE_CERTIFICATE" ]]; then
-            echo "APPLE_SIGNING_IDENTITY=-" >> "$GITHUB_ENV"
-          elif [[ -n "$APPLE_SIGNING_IDENTITY_SECRET" ]]; then
-            echo "APPLE_SIGNING_IDENTITY=$APPLE_SIGNING_IDENTITY_SECRET" >> "$GITHUB_ENV"
-          fi
+        run: echo "APPLE_SIGNING_IDENTITY=-" >> "$GITHUB_ENV"
 
       - name: Build installers and upload release assets
         uses: tauri-apps/tauri-action@v1
         env:
-          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
-          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
-          APPLE_ID: ${{ secrets.APPLE_ID }}
-          APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
-          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
           GITHUB_TOKEN: ${{ github.token }}
         with:
           releaseId: ${{ needs.prepare-release.outputs.release_id }}
