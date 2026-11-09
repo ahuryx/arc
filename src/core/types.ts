@@ -67,7 +67,8 @@ export interface WidgetData {
   notes: NotesData;
   weather: { city: string };
   calendar: { mode: CalendarMode };
-  clock: { timeFormat: TimeFormat };
+  /** `timeZone`: IANA id (e.g. Asia/Tehran); null = device time. */
+  clock: { timeFormat: TimeFormat; timeZone: string | null };
   pomodoro: { work: number; short: number; long: number };
   crypto: CryptoData;
 }

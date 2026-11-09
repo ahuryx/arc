@@ -2,6 +2,7 @@ import { emit, listen } from '@tauri-apps/api/event';
 import { LazyStore } from '@tauri-apps/plugin-store';
 
 import { defaultCryptoData } from '@/feeds/crypto/defaults';
+import { isTimeZone } from '@/lib/dates';
 
 import type {
   AppState,
@@ -96,7 +97,7 @@ export const DEFAULT_WIDGET_DATA: WidgetData = {
   notes: defaultNotes(),
   weather: { city: 'New York' },
   calendar: { mode: 'gregorian' },
-  clock: { timeFormat: '12' },
+  clock: { timeFormat: '12', timeZone: null },
   pomodoro: { work: 25, short: 5, long: 15 },
   crypto: defaultCrypto(),
 };
@@ -264,6 +265,7 @@ function migrateWidgetData(
         clock.timeFormat === '12' || clock.timeFormat === '24'
           ? clock.timeFormat
           : defaults.clock.timeFormat,
+      timeZone: isTimeZone(clock.timeZone) ? clock.timeZone : null,
     },
     pomodoro: {
       work: numberOr(pomodoro.work, defaults.pomodoro.work),

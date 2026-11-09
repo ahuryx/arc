@@ -34,7 +34,10 @@ import {
 
 const WINDOW_CREATE_TIMEOUT_MS = 10_000;
 
-const WINDOW_BACKGROUND_RGB: Record<ResolvedTheme, [number, number, number, number]> = {
+const WINDOW_BACKGROUND_RGB: Record<
+  ResolvedTheme,
+  [number, number, number, number]
+> = {
   light: [244, 244, 245, 255],
   dark: [14, 14, 16, 255],
 };
@@ -236,7 +239,9 @@ export async function setKeepOnTop(enabled: boolean): Promise<void> {
 }
 
 /** Update native window backgrounds after a theme change. */
-export async function applyThemeWindowAppearance(theme: ResolvedTheme): Promise<void> {
+export async function applyThemeWindowAppearance(
+  theme: ResolvedTheme,
+): Promise<void> {
   const color = WINDOW_BACKGROUND_RGB[theme];
   const windows = await getAllWebviewWindows();
 

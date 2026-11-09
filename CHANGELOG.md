@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Clock widget: choose a time zone in Settings → Clock (default: device time)
+
+### Fixed
+
+- Theme switch now updates native window backgrounds (missing Tauri permission)
+- Crypto: delisted Binance pairs no longer show frozen prices; missing coins fall back to CoinGecko
+
+### Changed
+
+- Dependencies updated: Vite 8, ESLint 10, TypeScript 6.0, Tauri 2.12 (JS + Rust)
+
 ## [0.2.0-beta.0] - 2026-08-03
 
 Pre-release (beta). Not a stable v1 — expect bugs and breaking changes.

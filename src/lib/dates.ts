@@ -1,8 +1,12 @@
 import dayjs from 'dayjs';
+import timezone from 'dayjs/plugin/timezone';
+import utc from 'dayjs/plugin/utc';
 import jalaliday from 'jalaliday';
 
 import type { CalendarMode } from '@/core/types';
 
+dayjs.extend(utc);
+dayjs.extend(timezone);
 dayjs.extend(jalaliday);
 
 const WEEKDAYS_EN = ['S', 'M', 'T', 'W', 'T', 'F', 'S'] as const;
@@ -12,22 +16,61 @@ export function weekdayLabels(): readonly string[] {
   return WEEKDAYS_EN;
 }
 
-export function formatTime(date: Date, timeFormat: '12' | '24' = '24'): string {
-  if (timeFormat === '12') {
-    return dayjs(date).format('h:mm:ss A');
-  }
+/** True for an IANA zone id this runtime can format (e.g. Asia/Tehran, UTC). */
+export function isTimeZone(value: unknown): value is string {
+  if (typeof value !== 'string' || !value) return false;
 
-  return dayjs(date).format('HH:mm:ss');
+  try {
+    new Intl.DateTimeFormat('en-US', { timeZone: value }).format();
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/** Zones for pickers: UTC first, then the runtime's IANA list. */
+export function timeZoneOptions(): string[] {
+  return ['UTC', ...Intl.supportedValuesOf('timeZone')];
+}
+
+/** Device zone id, e.g. Asia/Dubai. */
+export function deviceTimeZone(): string {
+  return Intl.DateTimeFormat().resolvedOptions().timeZone;
+}
+
+/** Short label: America/New_York → New York. */
+export function timeZoneLabel(timeZone: string): string {
+  return (timeZone.split('/').pop() ?? timeZone).replace(/_/g, ' ');
+}
+
+/** null/undefined zone = device time. */
+function inZone(date: Date, timeZone?: string | null): dayjs.Dayjs {
+  return timeZone ? dayjs(date).tz(timeZone) : dayjs(date);
+}
+
+export function formatTime(
+  date: Date,
+  timeFormat: '12' | '24' = '24',
+  timeZone?: string | null,
+): string {
+  return inZone(date, timeZone).format(
+    timeFormat === '12' ? 'h:mm:ss A' : 'HH:mm:ss',
+  );
 }
 
 /** Short Gregorian date, e.g. Mon, Jul 20. */
-export function formatGregorianDate(date: Date): string {
-  return dayjs(date).format('ddd, MMM D');
+export function formatGregorianDate(
+  date: Date,
+  timeZone?: string | null,
+): string {
+  return inZone(date, timeZone).format('ddd, MMM D');
 }
 
 /** Jalali date with Persian digits/month names when locale is fa. */
-export function formatJalaliDate(date: Date): string {
-  return dayjs(date).calendar('jalali').locale('fa').format('dddd D MMMM YYYY');
+export function formatJalaliDate(date: Date, timeZone?: string | null): string {
+  // jalaliday drops tz offsets: convert the zoned calendar day at local noon.
+  const day = dayjs(`${inZone(date, timeZone).format('YYYY-MM-DD')}T12:00`);
+  return day.calendar('jalali').locale('fa').format('dddd D MMMM YYYY');
 }
 
 export function formatMonthLabel(date: Date, mode: CalendarMode): string {

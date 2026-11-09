@@ -10,11 +10,20 @@ import { symbolName } from './symbols';
 async function fetchUsdPrices(
   symbols: string[],
 ): Promise<Partial<Record<string, UsdQuote>>> {
+  let prices: Partial<Record<string, UsdQuote>>;
+
   try {
-    return await fetchBinanceUsd(symbols);
+    prices = await fetchBinanceUsd(symbols);
   } catch {
     return fetchCoinGeckoUsd(symbols);
   }
+
+  // Fill symbols Binance does not trade (or only has stale) from CoinGecko.
+  const missing = symbols.filter((symbol) => !(symbol in prices));
+  if (!missing.length) return prices;
+
+  const extra = await fetchCoinGeckoUsd(missing).catch(() => ({}));
+  return { ...extra, ...prices };
 }
 
 export async function fetchCryptoTickers(

@@ -148,7 +148,12 @@ export async function setCalendarMode(mode: CalendarMode): Promise<void> {
 }
 
 export async function setTimeFormat(timeFormat: TimeFormat): Promise<void> {
-  await updateWidgetData({ clock: { timeFormat } });
+  await updateWidgetData({ clock: { ...getWidgetData().clock, timeFormat } });
+}
+
+/** null = follow the device time zone. */
+export async function setClockTimeZone(timeZone: string | null): Promise<void> {
+  await updateWidgetData({ clock: { ...getWidgetData().clock, timeZone } });
 }
 
 export async function setCryptoSettings(crypto: CryptoData): Promise<void> {

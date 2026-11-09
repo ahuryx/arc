@@ -7,6 +7,7 @@ import { X } from 'lucide-react';
 import { useEffect, useId, useRef, useState } from 'react';
 
 import type { SettingsTabId } from '@/core/settingsNav';
+import type { WidgetData } from '@/core/types';
 
 import { CryptoSettingsPanel } from '@/components/settings/crypto-settings-panel';
 import {
@@ -27,6 +28,13 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { NumberInput } from '@/components/ui/number-input';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { Toggle } from '@/components/ui/toggle';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import {
@@ -45,6 +53,7 @@ import {
   setAutoArrange,
   setAutostart,
   setCalendarMode,
+  setClockTimeZone,
   setKeepOnTopSetting,
   setLocked,
   setPomodoroDurations,
@@ -54,11 +63,15 @@ import {
   setWidgetSide,
   setWidgetVisibility,
 } from '@/core/workspaceHost';
+import { deviceTimeZone, timeZoneOptions } from '@/lib/dates';
 import { cn } from '@/lib/utils';
 
 const GAP_COMMIT_MS = 250;
 const GITHUB_URL = 'https://github.com/ahuryx/arc';
 const AHURYX_URL = 'https://ahuryx.com';
+/** Select sentinel for `timeZone: null` (Radix forbids empty values). */
+const DEVICE_ZONE = 'device';
+const TIME_ZONES = timeZoneOptions();
 
 function initialTab(): SettingsTabId {
   return (
@@ -393,26 +406,7 @@ export default function SettingsApp() {
               </>
             ) : null}
 
-            {tab === 'clock' ? (
-              <SettingsSection title="Clock">
-                <SettingsRow label="Time format">
-                  <ToggleGroup
-                    type="single"
-                    size="sm"
-                    value={data.clock.timeFormat}
-                    onValueChange={(value) => {
-                      if (value === '12' || value === '24') {
-                        void setTimeFormat(value);
-                      }
-                    }}
-                    aria-label="Clock format"
-                  >
-                    <ToggleGroupItem value="12">12h</ToggleGroupItem>
-                    <ToggleGroupItem value="24">24h</ToggleGroupItem>
-                  </ToggleGroup>
-                </SettingsRow>
-              </SettingsSection>
-            ) : null}
+            {tab === 'clock' ? <ClockSettingsPanel clock={data.clock} /> : null}
 
             {tab === 'calendar' ? (
               <SettingsSection title="Calendar">
@@ -555,6 +549,51 @@ export default function SettingsApp() {
         </div>
       </SettingsBody>
     </div>
+  );
+}
+
+function ClockSettingsPanel({ clock }: { clock: WidgetData['clock'] }) {
+  return (
+    <SettingsSection title="Clock">
+      <SettingsRow label="Time format">
+        <ToggleGroup
+          type="single"
+          size="sm"
+          value={clock.timeFormat}
+          onValueChange={(value) => {
+            if (value === '12' || value === '24') {
+              void setTimeFormat(value);
+            }
+          }}
+          aria-label="Clock format"
+        >
+          <ToggleGroupItem value="12">12h</ToggleGroupItem>
+          <ToggleGroupItem value="24">24h</ToggleGroupItem>
+        </ToggleGroup>
+      </SettingsRow>
+      <SettingsRow label="Time zone">
+        <Select
+          value={clock.timeZone ?? DEVICE_ZONE}
+          onValueChange={(value) =>
+            void setClockTimeZone(value === DEVICE_ZONE ? null : value)
+          }
+        >
+          <SelectTrigger size="sm" className="w-[200px]" aria-label="Time zone">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value={DEVICE_ZONE}>
+              Device ({deviceTimeZone()})
+            </SelectItem>
+            {TIME_ZONES.map((zone) => (
+              <SelectItem key={zone} value={zone}>
+                {zone.replace(/_/g, ' ')}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </SettingsRow>
+    </SettingsSection>
   );
 }
 

@@ -30,7 +30,7 @@ export async function bootstrap(): Promise<void> {
   }
 }
 
-void bootstrap().catch((error) => {
+void bootstrap().catch((error: unknown) => {
   console.error('[bootstrap] fatal', error);
   window.__widgetAppBooted = false;
 });

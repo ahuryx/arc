@@ -1,5 +1,7 @@
 import type { UsdQuote } from '../types';
 
+const STALE_MS = 60 * 60 * 1000;
+
 function num(v: unknown): number | null {
   const n = parseFloat(String(v));
   return Number.isFinite(n) ? n : null;
@@ -39,6 +41,7 @@ export async function fetchBinanceUsd(
     symbol?: string;
     lastPrice?: string;
     priceChangePercent?: string;
+    closeTime?: number;
   }[];
 
   if (!Array.isArray(json)) {
@@ -51,6 +54,8 @@ export async function fetchBinanceUsd(
     const sym = pair.slice(0, -4);
     const price = num(row.lastPrice);
     if (price == null) continue;
+    // Delisted pairs (MATIC, FTM, …) still answer with a frozen last price.
+    if (Date.now() - (row.closeTime ?? 0) > STALE_MS) continue;
     result[sym] = {
       price,
       change: num(row.priceChangePercent),
