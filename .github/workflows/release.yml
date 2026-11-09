@@ -192,7 +192,12 @@ jobs:
           tagName: ${{ needs.prepare-release.outputs.tag }}
           releaseDraft: ${{ needs.prepare-release.outputs.release_draft }}
           prerelease: ${{ needs.prepare-release.outputs.prerelease }}
-          args: ${{ matrix.tauri_args }}
+          # RPM rejects '-' in versions (tauri-cli 2.12+), so Linux prereleases skip it.
+          args: >-
+            ${{ matrix.tauri_args }}
+            ${{ matrix.platform == 'ubuntu-22.04' &&
+            needs.prepare-release.outputs.prerelease == 'true' &&
+            '--bundles deb,appimage' || '' }}
 
   publish-release:
     name: Publish release
