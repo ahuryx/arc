@@ -41,6 +41,8 @@
     "autostart:allow-disable",
     "autostart:allow-is-enabled",
     "process:allow-exit",
+    "process:allow-restart",
+    "updater:default",
     "opener:default"
   ]
 }

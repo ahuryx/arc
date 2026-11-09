@@ -15,6 +15,7 @@ import {
   SettingsSection,
 } from '@/components/settings/settings-section';
 import { SettingsSkeleton } from '@/components/settings/settings-skeleton';
+import { UpdateSection } from '@/components/settings/update-section';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -628,6 +629,7 @@ function AboutPanel() {
           edges.
         </p>
       </div>
+      <UpdateSection />
       <p className="text-[12px] text-foreground/80">
         Developed by{' '}
         <button

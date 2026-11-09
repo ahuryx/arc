@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.0-beta.3] - 2026-11-09
+
+Pre-release (beta). First version with in-app updates: install this one by hand once; later versions update from Settings → About.
+
+### Added
+
+- In-app updates: Settings → About checks for a new version and installs it in place (settings are kept; no uninstall step)
+
 ## [0.2.0-beta.2] - 2026-11-09
 
 Pre-release (beta).
@@ -42,7 +50,8 @@ Pre-release (beta). Not a stable v1 — expect bugs and breaking changes.
 - Workspace settings: theme, arrange, keep-on-top, lock, autostart
 - Optional Jalali calendar / Persian locale support
 
-[Unreleased]: https://github.com/ahuryx/arc/compare/v0.2.0-beta.2...HEAD
+[Unreleased]: https://github.com/ahuryx/arc/compare/v0.2.0-beta.3...HEAD
+[0.2.0-beta.3]: https://github.com/ahuryx/arc/compare/v0.2.0-beta.2...v0.2.0-beta.3
 [0.2.0-beta.2]: https://github.com/ahuryx/arc/compare/v0.2.0-beta.1...v0.2.0-beta.2
 [0.2.0-beta.0]: https://github.com/ahuryx/arc/compare/v0.1.0...v0.2.0-beta.0
 [0.1.0]: https://github.com/ahuryx/arc/releases/tag/v0.1.0

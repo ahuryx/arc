@@ -187,6 +187,9 @@ jobs:
         uses: tauri-apps/tauri-action@v1
         env:
           GITHUB_TOKEN: ${{ github.token }}
+          # Signs the update bundles; the app checks them with the public key in tauri.conf.json.
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         with:
           releaseId: ${{ needs.prepare-release.outputs.release_id }}
           tagName: ${{ needs.prepare-release.outputs.tag }}
@@ -221,3 +224,23 @@ jobs:
           else
             gh release edit "$TAG" --draft=false --prerelease=false --latest
           fi
+
+      # `releases/latest/download` skips pre-releases, so the app reads latest.json
+      # from this fixed release instead (see plugins.updater.endpoints).
+      - name: Point the update feed at this release
+        env:
+          GH_REPO: ${{ github.repository }}
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ needs.prepare-release.outputs.tag }}
+        shell: bash
+        run: |
+          gh release download "$TAG" --pattern latest.json --dir feed
+
+          if ! gh release view updater > /dev/null 2>&1; then
+            gh release create updater \
+              --prerelease \
+              --title "Update feed" \
+              --notes "Holds latest.json for in-app updates. Managed by CI; do not download."
+          fi
+
+          gh release upload updater feed/latest.json --clobber
